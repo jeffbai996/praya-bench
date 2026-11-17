@@ -7,7 +7,9 @@ from prayabench.scene import validate_cells,full_block,flush_top
 from prayabench.tasks import fixture,init_run,verify_run
 from prayabench.evaluate import assess
 from prayabench.providers import final_result
+from prayabench.render import colour,svg
 from prayabench.report import report
+from prayabench.sandbox import extract_python_source
 from prayabench.demo import example
 
 class CoreTests(unittest.TestCase):
@@ -83,5 +85,129 @@ class CoreTests(unittest.TestCase):
             output=(p/'index.html').read_text()
             self.assertNotIn('<script>alert(1)</script>',output)
             self.assertIn('&lt;script&gt;',output)
+
+    def test_fence_gate_and_hanging_sign_do_not_block_door_reachability(self):
+        cells = [
+            *[[x, 3, 6, 'oak_fence'] for x in range(6, 11) if x != 8],
+            [8, 3, 6, 'oak_fence_gate[facing=north,open=false]'],
+            [8, 5, 7, 'stone_bricks'],
+            [8, 4, 7, 'oak_hanging_sign[rotation=0]', ['Open', '', '', '']],
+            [8, 3, 8, 'oak_door[facing=north,half=lower]'],
+            [8, 4, 8, 'oak_door[facing=north,half=upper]'],
+        ]
+        c = self.codes(cells, 'small-house')
+        self.assertNotIn('unreachable_door', c)
+        self.assertNotIn('standing_sign', c)
+        self.assertNotIn('unsupported_hanging_sign', c)
+
+    def test_ceiling_and_wall_hanging_signs_check_proper_attachment(self):
+        floating_ceiling = [[8, 6, 8, 'oak_hanging_sign[rotation=0]', ['Menu', '', '', '']]]
+        self.assertIn('unsupported_hanging_sign', self.codes(floating_ceiling))
+        self.assertNotIn('standing_sign', self.codes(floating_ceiling))
+
+        supported_wall_hang = [
+            [7, 6, 8, 'stone_bricks'],
+            [8, 6, 8, 'oak_wall_hanging_sign[facing=north]', ['Cafe', '', '', '']],
+        ]
+        self.assertNotIn('unsupported_hanging_sign', self.codes(supported_wall_hang))
+
+        floating_wall_hang = [[8, 6, 8, 'oak_wall_hanging_sign[facing=north]', ['Cafe', '', '', '']]]
+        self.assertIn('unsupported_hanging_sign', self.codes(floating_wall_hang))
+
+    def test_door_requires_matching_facing_and_warns_on_glass_pane_jamb(self):
+        mismatched = [
+            [8, 3, 8, 'oak_door[facing=north,half=lower]'],
+            [8, 4, 8, 'oak_door[facing=east,half=upper]'],
+        ]
+        self.assertIn('unpaired_door', self.codes(mismatched, 'small-house'))
+
+        pane_jamb = [
+            [7, 3, 8, 'gray_stained_glass_pane'],
+            [8, 3, 8, 'oak_door[facing=north,half=lower]'],
+            [8, 4, 8, 'oak_door[facing=north,half=upper]'],
+        ]
+        self.assertIn('door_pane_jamb', self.codes(pane_jamb, 'small-house'))
+
+    def test_bed_requires_matching_head_and_foot_halves(self):
+        orphan = [[8, 3, 10, 'white_bed[facing=north,part=foot]']]
+        self.assertIn('unpaired_bed', self.codes(orphan, 'small-house'))
+
+        paired = [
+            [8, 3, 10, 'white_bed[facing=north,part=foot]'],
+            [8, 3, 9, 'white_bed[facing=north,part=head]'],
+        ]
+        self.assertNotIn('unpaired_bed', self.codes(paired, 'small-house'))
+
+    def test_floating_lantern_trapdoor_carpet_and_invalid_flora_substrate_detected(self):
+        defects = [
+            [6, 6, 10, 'lantern[hanging=true]'],
+            [8, 6, 10, 'spruce_trapdoor[facing=north,half=top]'],
+            [10, 6, 10, 'white_carpet'],
+            [12, 3, 10, 'white_concrete'],
+            [12, 4, 10, 'poppy'],
+        ]
+        c = self.codes(defects, 'small-house')
+        self.assertIn('floating_fixture', c)
+        self.assertIn('floating_trapdoor', c)
+        self.assertIn('invalid_planting', c)
+
+        valid = [
+            [6, 7, 10, 'iron_chain'],
+            [6, 6, 10, 'lantern[hanging=true]'],
+            [7, 6, 10, 'stone_bricks'],
+            [8, 6, 10, 'spruce_trapdoor[facing=east,half=top]'],
+            [10, 3, 10, 'white_carpet'],
+            [12, 3, 10, 'poppy'],
+            [8, 3, 8, 'oak_door[facing=north,half=lower]'],
+            [8, 4, 8, 'oak_door[facing=north,half=upper]'],
+        ]
+        vc = self.codes(valid, 'small-house')
+        self.assertNotIn('floating_fixture', vc)
+        self.assertNotIn('floating_trapdoor', vc)
+        self.assertNotIn('invalid_planting', vc)
+
+    def test_extract_python_source_strips_markdown_fence_and_records_wrapper(self):
+        code, stripped = extract_python_source("```python\ndef build(put, box, head, sign, ground):\n    pass\n```\n")
+        self.assertTrue(stripped)
+        self.assertTrue(code.startswith("def build"))
+        raw, stripped_raw = extract_python_source("def build(put, box, head, sign, ground):\n    pass\n")
+        self.assertFalse(stripped_raw)
+        self.assertEqual(raw.strip(), code.strip())
+
+    def test_overbudget_submission_flagged_when_evaluated(self):
+        rep = assess(fixture('pocket-park'), {'cells': [], 'source_characters': 17942, 'diagnostic_only': True})
+        self.assertIn('source_budget_exceeded', {i['code'] for i in rep['issues']})
+
+    def test_renderer_assigns_distinct_colours_and_culls_internal_water_faces(self):
+        self.assertNotEqual(colour('water'), colour('stone'))
+        self.assertNotEqual(colour('cherry_planks'), colour('stone'))
+        self.assertNotEqual(colour('sandstone_slab'), colour('stone'))
+        one_water = svg({(5, 2, 8): [5, 2, 8, 'water', None, '', None]})
+        two_water = svg({
+            (5, 2, 8): [5, 2, 8, 'water', None, '', None],
+            (6, 2, 8): [6, 2, 8, 'water', None, '', None],
+        })
+        self.assertLess(two_water.count('<polygon'), one_water.count('<polygon') * 2)
+
+    def test_tall_double_plants_and_everyday_vanilla_materials_supported(self):
+        cells = [
+            [6, 3, 10, 'peony[half=lower]'],
+            [6, 4, 10, 'peony[half=upper]'],
+            [8, 3, 10, 'mossy_stone_bricks'],
+            [9, 3, 10, 'mud_bricks'],
+            [10, 3, 10, 'cobblestone_wall'],
+            [11, 3, 10, 'tinted_glass'],
+            [12, 3, 10, 'composter'],
+            [13, 3, 10, 'water_cauldron'],
+            [14, 3, 10, 'allium'],
+            [8, 3, 8, 'oak_door[facing=north,half=lower]'],
+            [8, 4, 8, 'oak_door[facing=north,half=upper]'],
+        ]
+        c = self.codes(cells, 'small-house')
+        self.assertNotIn('invalid_planting', c)
+        self.assertNotIn('unsupported_block', c)
+        # Upper half of peony directly on stone is still invalid
+        bad = [[6, 3, 10, 'stone'], [6, 4, 10, 'peony[half=upper]']]
+        self.assertIn('invalid_planting', self.codes(bad, 'small-house'))
 
 if __name__=='__main__':unittest.main()

@@ -2,35 +2,45 @@
 
 ## Versioned inputs
 
-Every run records a task, baseline fixture, supported palette and prompt hash.
-Changing any of these requires a new run directory. The evaluator version and
+Every run records a task, category, baseline fixture, supported palette and prompt
+hash. Changing any of these requires a new run directory. The evaluator version and
 source hash appear in check reports. Pin the package commit and compiler image
 digest for reproducibility. Runtime inputs, not a model's self-reported success,
 determine whether a response compiled and what cells it produced.
 
 ## Recommended experiment
 
-1. Select several tasks, model IDs and explicit inference settings before running.
+1. Select several tasks across distinct geometry categories (slope, two-storey
+   circulation, canal spanning, dual-frontage corner, party-wall infill, renovation),
+   along with model IDs and explicit inference settings before running.
 2. Use fresh sessions and identical visible inputs and tools for each trial.
 3. Run at least three repetitions. Report source-limit failures, timeouts and
    transport errors separately; a transport failure is not evidence of poor design.
-4. Keep raw final answers and compiled JSON unchanged. Report any extraction
-   wrappers removed or repairs performed; do not include repaired runs as first-pass wins.
-5. Evaluate bounded geometry and compare anonymized views. Have humans assess
-   proportions, circulation, structure, terrain integration and task fulfillment.
+4. Keep raw final answers and compiled JSON unchanged. The compiler records
+   `stripped_markdown_fence` when extracting a fenced code block and `diagnostic_only`
+   when `--diagnostic-overbudget` is used. Do not include repaired or overbudget
+   runs as compliant first-pass wins.
+5. Evaluate bounded geometry and structured brief completion, then compare
+   anonymized views across camera angles and floor cutaways. Have humans assess
+   proportions, circulation, structure, terrain integration and room usability.
 6. If testing repair ability, supply the same correction prompt and repair budget.
    Keep first-pass and repaired results separate.
 
 ## Separate dimensions
 
-**Validity:** identified construction defects and unsupported block names.
-**Completion:** whether the requested building, rooms and objects actually exist.
-**Design:** blind human preference with written reasons.
+**Validity:** located construction defects, missing supports, unreachable doors,
+protected-zone edits, budget overruns and unsupported block names (`issues`).
+**Completion:** task-specific checks verifying whether the requested props,
+reachability targets (south-bank kiosk, summit entrance, upper storey, park path),
+frontages and fixtures exist (`completion`).
+**Design:** blind human preference across exterior rotations and interior cutaways,
+with written reasons.
 **Efficiency:** observed runtime and provider-reported usage, with accounting caveats.
 
-There is no weighted total score in v0.1. A beautiful inaccessible building does
-not become valid through averaging; a plain valid box does not automatically win
-the design review. Passing existence checks does not prove a room is useful.
+There is no weighted total score. A beautiful inaccessible building does not
+become valid through averaging; a minimal box that ticks every completion check
+does not automatically win the design review. Use `prayabench summary` to inspect
+validity and completion side by side across runs.
 
 ## Native adapters
 
