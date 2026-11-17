@@ -1,18 +1,23 @@
-"""Small declared block palette and bounded JSON scene format; no code execution."""
+"""Declared block palette and bounded JSON scene format; no code execution."""
 import json
 from pathlib import Path
 import re
 from typing import Any
 
-MAX_BYTES = 4_000_000
-MAX_CELLS = 30_000
-ASSETS = ('coffee_maker', 'pos_terminal', 'mailbox_orange')
+MAX_BYTES = 12_000_000
+MAX_CELLS = 90_000
+ASSETS = (
+    'coffee_maker', 'pos_terminal', 'mailbox_orange',
+    'ticket_validator', 'computer_monitor', 'fire_hydrant',
+    'parking_meter', 'trash_bin', 'defibrillator',
+)
+POST_MOUNTED_ASSETS = frozenset({'mailbox_orange', 'parking_meter'})
 WOODS = ('oak', 'spruce', 'birch', 'dark_oak', 'acacia', 'jungle', 'cherry', 'mangrove')
 COLORS = (
     'white', 'light_gray', 'gray', 'black', 'red', 'orange', 'yellow', 'green',
     'lime', 'blue', 'light_blue', 'cyan', 'purple', 'magenta', 'pink', 'brown',
 )
-FLORA_SOIL = frozenset({'grass_block', 'dirt', 'coarse_dirt', 'podzol', 'moss_block'})
+FLORA_SOIL = frozenset({'grass_block', 'dirt', 'coarse_dirt', 'podzol', 'moss_block', 'rooted_dirt', 'mud'})
 TALL_FLORA = frozenset({'tall_grass', 'large_fern', 'peony', 'rose_bush', 'lilac', 'sunflower'})
 GROUND_FLORA = TALL_FLORA | frozenset({
     'azalea', 'flowering_azalea', 'bush', 'sweet_berry_bush', 'fern', 'short_grass',
@@ -20,21 +25,30 @@ GROUND_FLORA = TALL_FLORA | frozenset({
     'lily_of_the_valley', 'allium', 'blue_orchid',
     'red_tulip', 'orange_tulip', 'white_tulip', 'pink_tulip',
 })
+GRAVITY_BLOCKS = frozenset({'sand', 'red_sand', 'gravel'})
+RAIL_BLOCKS = frozenset({'rail', 'powered_rail', 'detector_rail', 'activator_rail'})
 
 PALETTE = set(
-    'air stone cobblestone mossy_cobblestone dirt grass_block podzol coarse_dirt gravel sand '
+    'air stone cobblestone mossy_cobblestone coal_ore iron_ore copper_ore '
+    'dirt rooted_dirt clay mud packed_mud grass_block podzol coarse_dirt gravel sand red_sand '
     'calcite terracotta bricks mud_bricks brick_wall stone_bricks mossy_stone_bricks '
     'chiseled_stone_bricks cracked_stone_bricks smooth_stone smooth_quartz quartz_block '
+    'quartz_bricks quartz_pillar prismarine prismarine_bricks dark_prismarine '
     'granite polished_granite polished_diorite polished_andesite andesite diorite '
     'tuff polished_tuff tuff_bricks polished_deepslate deepslate_tiles deepslate_bricks '
     'polished_blackstone polished_basalt copper_block cut_copper weathered_copper '
-    'weathered_cut_copper oxidized_copper oxidized_cut_copper iron_block iron_bars '
-    'iron_chain chain glass tinted_glass glass_pane sea_lantern lantern soul_lantern '
-    'torch wall_torch end_rod redstone_torch redstone_wall_torch redstone_lamp glowstone '
-    'barrel bookshelf lectern furnace blast_furnace smoker crafting_table cartography_table '
-    'smithing_table loom stonecutter grindstone anvil bell note_block jukebox chest '
-    'composter cauldron water_cauldron hopper ladder scaffolding campfire soul_campfire '
-    'daylight_detector hay_block bone_block water lily_pad vine glow_lichen '
+    'weathered_cut_copper oxidized_copper oxidized_cut_copper copper_bulb '
+    'weathered_copper_bulb oxidized_copper_bulb waxed_copper_bulb waxed_oxidized_copper_bulb '
+    'iron_block iron_bars iron_chain chain lightning_rod glass tinted_glass glass_pane '
+    'sea_lantern shroomlight ochre_froglight verdant_froglight pearlescent_froglight '
+    'lantern soul_lantern torch wall_torch end_rod redstone_torch redstone_wall_torch '
+    'redstone_lamp glowstone barrel bookshelf lectern furnace blast_furnace smoker '
+    'crafting_table cartography_table smithing_table loom stonecutter grindstone anvil '
+    'bell note_block jukebox chest composter cauldron water_cauldron hopper ladder '
+    'scaffolding campfire soul_campfire daylight_detector hay_block bone_block '
+    'rail powered_rail detector_rail activator_rail '
+    'heavy_weighted_pressure_plate light_weighted_pressure_plate polished_blackstone_pressure_plate '
+    'water lily_pad vine glow_lichen '
     'flower_pot potted_fern potted_azalea_bush potted_flowering_azalea_bush '
     'potted_poppy potted_dandelion potted_allium potted_azure_bluet potted_cornflower '
     'potted_lily_of_the_valley potted_oxeye_daisy potted_oak_sapling potted_spruce_sapling '
@@ -71,8 +85,9 @@ for stone in (
     'smooth_stone', 'quartz', 'smooth_quartz', 'brick', 'mud_brick',
     'granite', 'polished_granite', 'diorite', 'polished_diorite',
     'andesite', 'polished_andesite', 'tuff', 'polished_tuff', 'tuff_brick',
+    'prismarine', 'prismarine_brick', 'dark_prismarine',
     'polished_deepslate', 'deepslate_tile', 'deepslate_brick',
-    'polished_blackstone', 'sandstone', 'smooth_sandstone',
+    'polished_blackstone', 'sandstone', 'smooth_sandstone', 'red_sandstone', 'smooth_red_sandstone',
     'cut_copper', 'weathered_cut_copper', 'oxidized_cut_copper',
 ):
     PALETTE.add(f'{stone}_slab')
@@ -81,8 +96,8 @@ for stone in (
     if stone in (
         'cobblestone', 'mossy_cobblestone', 'stone_brick', 'mossy_stone_brick',
         'brick', 'mud_brick', 'granite', 'diorite', 'andesite', 'tuff', 'polished_tuff',
-        'tuff_brick', 'polished_deepslate', 'deepslate_tile', 'deepslate_brick',
-        'polished_blackstone', 'sandstone',
+        'tuff_brick', 'prismarine', 'polished_deepslate', 'deepslate_tile', 'deepslate_brick',
+        'polished_blackstone', 'sandstone', 'red_sandstone',
     ):
         PALETTE.add(f'{stone}_wall')
 for copper in (
@@ -116,7 +131,7 @@ def state_parts(state: str) -> tuple[str, dict[str, str]]:
 def load_json(path: str | Path) -> Any:
     p = Path(path)
     if p.stat().st_size > MAX_BYTES:
-        raise ValueError('input exceeds 4 MB')
+        raise ValueError('input exceeds 12 MB')
     return json.loads(p.read_text())
 
 
@@ -160,6 +175,7 @@ def passable(state: str) -> bool:
     b, _ = state_parts(state)
     return (
         b == 'air'
+        or b in RAIL_BLOCKS
         or b.endswith((
             '_door', '_fence_gate', '_sign', '_hanging_sign', '_wall_hanging_sign',
             '_carpet', '_button', '_pressure_plate',
@@ -183,10 +199,11 @@ def full_block(state: str) -> bool:
     if b.endswith(('_stairs', '_pane', '_bars', '_fence', '_fence_gate', '_wall', '_trapdoor', '_head', '_bed', '_leaves', '_candle')):
         return False
     if b.startswith('potted_') or b in GROUND_FLORA or b in {
-        'water', 'lily_pad', 'chain', 'iron_chain', 'lantern', 'soul_lantern', 'end_rod',
-        'flower_pot', 'candle', 'cake', 'composter', 'cauldron', 'water_cauldron',
-        'hopper', 'lectern', 'grindstone', 'stonecutter', 'anvil', 'bell',
-        'scaffolding', 'campfire', 'soul_campfire', 'daylight_detector', 'lever',
+        'water', 'lily_pad', 'chain', 'iron_chain', 'lightning_rod',
+        'lantern', 'soul_lantern', 'end_rod', 'flower_pot', 'candle', 'cake',
+        'composter', 'cauldron', 'water_cauldron', 'hopper', 'lectern',
+        'grindstone', 'stonecutter', 'anvil', 'bell', 'scaffolding',
+        'campfire', 'soul_campfire', 'daylight_detector', 'lever',
     }:
         return False
     return True

@@ -3,18 +3,24 @@ import json
 from pathlib import Path
 
 from .scene import PALETTE, load_json
-from .tasks import TASK_SPECS, TASKS, init_run
+from .tasks import SCALES, TASK_SPECS, TASKS, init_run, init_suite
 
 
 def main() -> None:
     p = argparse.ArgumentParser(prog='prayabench', description='A visual benchmark for AI building in Minecraft')
     sub = p.add_subparsers(dest='cmd', required=True)
     a = sub.add_parser('tasks')
+    a.add_argument('--scale', choices=SCALES)
+    a.add_argument('--category')
     a.add_argument('--json', action='store_true')
     sub.add_parser('palette')
     a = sub.add_parser('init')
     a.add_argument('directory')
     a.add_argument('--task', choices=TASKS, default='sloped-cafe')
+    a = sub.add_parser('init-suite')
+    a.add_argument('directory')
+    a.add_argument('--scale', choices=SCALES)
+    a.add_argument('--category')
     a = sub.add_parser('demo')
     a.add_argument('directory')
     a = sub.add_parser('evaluate')
@@ -46,18 +52,35 @@ def main() -> None:
     args = p.parse_args()
     try:
         if args.cmd == 'tasks':
+            filtered = {
+                k: v for k, v in TASK_SPECS.items()
+                if (args.scale is None or v['scale'] == args.scale)
+                and (args.category is None or v['category'] == args.category)
+            }
             if args.json:
                 print(json.dumps({
-                    k: {'category': v['category'], 'terrain': v['terrain'], 'brief': v['brief']}
-                    for k, v in TASK_SPECS.items()
+                    k: {
+                        'scale': v['scale'],
+                        'category': v['category'],
+                        'bounds': v['bounds'],
+                        'source_limit': v['source_limit'],
+                        'terrain': v['terrain'],
+                        'brief': v['brief'],
+                    }
+                    for k, v in filtered.items()
                 }, indent=2))
             else:
-                for k, v in TASK_SPECS.items():
-                    print(f'{k} [{v["category"]}]: {v["brief"]}')
+                for k, v in filtered.items():
+                    b = v['bounds']
+                    dims = f'{b[3]+1}x{b[4]+1}x{b[5]+1}'
+                    print(f'{k} [{v["scale"]} · {v["category"]} · {dims}]: {v["brief"]}')
         elif args.cmd == 'palette':
             print('\n'.join(sorted(PALETTE)))
         elif args.cmd == 'init':
             print(init_run(args.directory, args.task))
+        elif args.cmd == 'init-suite':
+            created = init_suite(args.directory, scale=args.scale, category=args.category)
+            print(f'Initialized {len(created)} task runs in {args.directory}')
         elif args.cmd == 'demo':
             from .demo import demo
             print(demo(args.directory))
@@ -67,6 +90,7 @@ def main() -> None:
             comp = result['completion']
             print(json.dumps({
                 'task': result['task'],
+                'scale': result['scale'],
                 'edited_cells': result['edited_cells'],
                 'completion': f'{comp["met_count"]}/{comp["total_count"]}',
                 'complete': comp['complete'],

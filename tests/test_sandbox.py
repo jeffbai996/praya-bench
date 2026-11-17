@@ -52,4 +52,13 @@ class SandboxTests(unittest.TestCase):
             self.assertTrue(result['diagnostic_only'])
             self.assertGreater(result['source_characters'],14000)
 
+    def test_sandbox_supports_large_task_bounds_and_task_specific_source_limit(self):
+        with tempfile.TemporaryDirectory() as d:
+            p=init_run(Path(d)/'run','civic-office-tower');src=p/'answer.py';out=p/'build.json'
+            padding='#'+'x'*15500+'\n'
+            src.write_text("def build(put,box,head,sign,ground):\n"+padding+" y=ground(28,24)+1\n put(28,34,24,'white_concrete')\n put(28,y,24,'stone_bricks')\n")
+            result=compile_build(p,src,out)
+            self.assertFalse(result.get('diagnostic_only',False))
+            self.assertEqual(len(result['cells']),2)
+
 if __name__=='__main__':unittest.main()

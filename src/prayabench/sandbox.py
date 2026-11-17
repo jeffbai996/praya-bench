@@ -6,12 +6,12 @@ import subprocess
 from typing import Any
 import uuid
 
-from .scene import ASSETS, validate_cells
-from .tasks import ground_grid, verify_run
+from .scene import ASSETS, MAX_BYTES, MAX_CELLS, validate_cells
+from .tasks import TASK_SPECS, ground_grid, verify_run
 
 DEFAULT_IMAGE = 'python:3.12-slim'
-SOURCE_LIMIT = 14000
-DIAGNOSTIC_SOURCE_LIMIT = 60000
+DEFAULT_SOURCE_LIMIT = 14000
+DIAGNOSTIC_SOURCE_LIMIT = 80000
 
 
 def extract_python_source(raw: str) -> tuple[str, bool]:
@@ -27,22 +27,23 @@ def compile_build(
     source: str | Path,
     out: str | Path,
     image: str = DEFAULT_IMAGE,
-    timeout: int = 12,
+    timeout: int = 15,
     diagnostic_overbudget: bool = False,
 ) -> dict[str, Any]:
     fixture = verify_run(run)
+    task = fixture['task']
+    contract_limit = fixture.get('source_limit') or TASK_SPECS.get(task, {}).get('source_limit', DEFAULT_SOURCE_LIMIT)
     path = Path(source)
-    if path.stat().st_size > 120_000:
+    if path.stat().st_size > 180_000:
         raise ValueError('source file too large')
     raw_code = path.read_text()
     code, stripped_fence = extract_python_source(raw_code)
     source_chars = len(code)
-    cap = DIAGNOSTIC_SOURCE_LIMIT if diagnostic_overbudget else SOURCE_LIMIT
+    cap = DIAGNOSTIC_SOURCE_LIMIT if diagnostic_overbudget else contract_limit
     if source_chars > cap:
         raise ValueError(f'source exceeds {cap} characters ({source_chars})')
-    over_contract = source_chars > SOURCE_LIMIT
+    over_contract = source_chars > contract_limit
 
-    # Resolve a locally available image to an immutable ID. Never pull silently.
     inspect = subprocess.run(
         ['docker', 'image', 'inspect', image, '--format', '{"id":{{json .Id}},"digests":{{json .RepoDigests}}}'],
         capture_output=True, text=True, timeout=10,
@@ -59,19 +60,23 @@ def compile_build(
     cmd = [
         'docker', 'run', '--rm', '--name', container, '--network', 'none', '--read-only',
         '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges', '--user', '65534:65534',
-        '--memory', '128m', '--memory-swap', '128m', '--cpus', '1', '--pids-limit', '16',
-        '--ulimit', 'cpu=5:5', '--ulimit', 'fsize=0:0', '-i', image_id, 'python', '-I', '-B', '-c', worker,
+        '--memory', '192m', '--memory-swap', '192m', '--cpus', '1', '--pids-limit', '16',
+        '--ulimit', 'cpu=8:8', '--ulimit', 'fsize=0:0', '-i', image_id, 'python', '-I', '-B', '-c', worker,
     ]
+    bounds = fixture.get('bounds') or TASK_SPECS.get(task, {}).get('bounds', [0, 0, 0, 23, 17, 21])
     payload = {
         'source': code,
-        'task': fixture['task'],
-        'ground': fixture.get('ground') or ground_grid(fixture['task']),
+        'task': task,
+        'bounds': bounds,
+        'ground': fixture.get('ground') or ground_grid(task),
         'assets': list(ASSETS),
         'source_limit': cap,
+        'cell_limit': MAX_CELLS,
+        'write_limit': MAX_CELLS * 2,
     }
     try:
         proc = subprocess.run(cmd, input=json.dumps(payload), capture_output=True, text=True, timeout=timeout)
-        if len(proc.stdout) > 4_000_000:
+        if len(proc.stdout) > MAX_BYTES:
             raise RuntimeError('Sandbox output too large')
         try:
             result = json.loads(proc.stdout)
@@ -90,10 +95,11 @@ def compile_build(
             'registry_digests': image_meta.get('digests') or [],
             'network': 'none',
             'readonly': True,
-            'memory_bytes': 134217728,
-            'cpu_seconds': 5,
+            'memory_bytes': 201326592,
+            'cpu_seconds': 8,
             'wall_timeout_seconds': timeout,
             'source_characters': source_chars,
+            'contract_source_limit': contract_limit,
             'stripped_markdown_fence': stripped_fence,
             'diagnostic_only': over_contract,
         }, indent=2))

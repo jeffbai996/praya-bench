@@ -20,8 +20,8 @@ class TasksAndCompletionTests(unittest.TestCase):
             'party-wall-infill',
             'hillside-pavilion',
         }
-        self.assertEqual(set(TASKS), expected)
-        self.assertEqual(set(TASK_SPECS), expected)
+        self.assertTrue(expected.issubset(set(TASKS)))
+        self.assertTrue(expected.issubset(set(TASK_SPECS)))
         with tempfile.TemporaryDirectory() as d:
             for task_name in expected:
                 run_dir = init_run(Path(d) / task_name, task_name)

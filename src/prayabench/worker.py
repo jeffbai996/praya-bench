@@ -4,7 +4,15 @@ import json
 import sys
 
 
-def compile_source(source, task, ground_map=None, assets=None, source_limit=14000):
+def compile_source(
+    source,
+    task,
+    ground_map=None,
+    assets=None,
+    source_limit=14000,
+    cell_limit=90000,
+    write_limit=180000,
+):
     if len(source) > source_limit:
         raise ValueError(f'source exceeds {source_limit} characters')
     tree = ast.parse(source)
@@ -27,7 +35,7 @@ def compile_source(source, task, ground_map=None, assets=None, source_limit=1400
     def put(x, y, z, state, component=''):
         nonlocal writes
         writes += 1
-        if writes > 60000:
+        if writes > write_limit:
             raise ValueError('write budget exceeded')
         if any(type(v) is not int or abs(v) > 1024 for v in (x, y, z)):
             raise ValueError('bounded integer coordinates required')
@@ -36,12 +44,12 @@ def compile_source(source, task, ground_map=None, assets=None, source_limit=1400
         if not isinstance(component, str) or len(component) > 100:
             raise ValueError('component exceeds limit')
         cells[x, y, z] = [x, y, z, state, None, component, None]
-        if len(cells) > 30000:
+        if len(cells) > cell_limit:
             raise ValueError('cell budget exceeded')
 
     def box(x0, y0, z0, x1, y1, z1, state, component=''):
         spans = [x1 - x0 + 1, y1 - y0 + 1, z1 - z0 + 1]
-        if any(n < 0 or n > 1024 for n in spans) or spans[0] * spans[1] * spans[2] > 60000:
+        if any(n < 0 or n > 1024 for n in spans) or spans[0] * spans[1] * spans[2] > write_limit:
             raise ValueError('box exceeds budget')
         for x in range(x0, x1 + 1):
             for y in range(y0, y1 + 1):
@@ -60,9 +68,12 @@ def compile_source(source, task, ground_map=None, assets=None, source_limit=1400
         put(x, y, z, state, component)
         cells[x, y, z][4] = lines
 
+    max_x = (len(ground_map) - 1) if ground_map else 23
+    max_z = (len(ground_map[0]) - 1) if (ground_map and ground_map[0]) else 21
+
     def ground(x, z=5):
-        xc = max(0, min(23, int(x)))
-        zc = max(0, min(21, int(z)))
+        xc = max(0, min(max_x, int(x)))
+        zc = max(0, min(max_z, int(z)))
         if ground_map is not None:
             return ground_map[xc][zc]
         return 2 + xc // 8 if task == 'sloped-cafe' else 2
@@ -82,15 +93,17 @@ def compile_source(source, task, ground_map=None, assets=None, source_limit=1400
 
 if __name__ == '__main__':
     try:
-        data = json.loads(sys.stdin.read(200000))
+        data = json.loads(sys.stdin.read(300000))
         output = json.dumps(compile_source(
             data['source'],
             data['task'],
             ground_map=data.get('ground'),
             assets=data.get('assets'),
             source_limit=data.get('source_limit', 14000),
+            cell_limit=data.get('cell_limit', 90000),
+            write_limit=data.get('write_limit', 180000),
         ))
-        if len(output) > 4_000_000:
+        if len(output) > 12_000_000:
             raise ValueError('output exceeds limit')
         print(output)
     except Exception as e:

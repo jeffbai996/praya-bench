@@ -1,8 +1,8 @@
-"""Original flat-colour SVG renderer. No Minecraft artwork or texture downloads."""
+"""Auto-framing flat-colour isometric SVG renderer. No Minecraft artwork or texture downloads."""
 import html
-from typing import Any
+from typing import Any, Sequence
 
-from .scene import full_block, state_parts
+from .scene import RAIL_BLOCKS, full_block, state_parts
 
 
 def colour(b: str) -> tuple[int, int, int]:
@@ -24,12 +24,22 @@ def colour(b: str) -> tuple[int, int, int]:
         return (78, 76, 86)
     if 'glass' in b:
         return (125, 159, 169)
+    if b == 'powered_rail':
+        return (206, 164, 62)
+    if b in RAIL_BLOCKS:
+        return (138, 130, 118)
+    if 'prismarine' in b:
+        return (94, 154, 145)
     if 'oxidized' in b and 'copper' in b:
         return (83, 153, 132)
     if 'weathered' in b and 'copper' in b:
         return (108, 148, 116)
-    if 'copper' in b:
+    if 'copper' in b or b == 'lightning_rod':
         return (184, 108, 82)
+    if b == 'coal_ore':
+        return (72, 75, 78)
+    if b == 'iron_ore':
+        return (156, 138, 124)
     if 'bamboo' in b:
         return (196, 178, 88)
     if 'cherry' in b:
@@ -46,31 +56,35 @@ def colour(b: str) -> tuple[int, int, int]:
         return (159, 123, 77)
     if 'mud' in b:
         return (138, 114, 98)
+    if b == 'clay':
+        return (160, 166, 179)
     if 'granite' in b:
         return (154, 109, 93)
     if 'mossy_' in b:
         return (112, 126, 104)
+    if 'red_sand' in b:
+        return (186, 103, 56)
     if 'sand' in b:
         return (216, 203, 155)
     if 'diorite' in b:
         return (205, 205, 202)
-    if 'andesite' in b or b == 'gravel':
+    if 'andesite' in b or b == 'gravel' or 'tuff' in b:
         return (132, 136, 136)
     if 'deepslate' in b or 'blackstone' in b or 'basalt' in b:
         return (57, 63, 67)
-    if 'quartz' in b or b == 'calcite':
+    if 'quartz' in b or b in ('calcite', 'bone_block'):
         return (226, 223, 209)
     if b in ('bricks', 'brick_wall') or b.startswith('brick_'):
         return (158, 102, 84)
-    if b in ('iron_block', 'iron_door', 'iron_trapdoor', 'iron_bars', 'cauldron'):
+    if b in ('iron_block', 'iron_door', 'iron_trapdoor', 'iron_bars', 'cauldron', 'water_cauldron', 'hopper', 'anvil'):
         return (188, 193, 196)
-    if b == 'sea_lantern':
+    if b in ('sea_lantern', 'verdant_froglight', 'pearlescent_froglight'):
         return (195, 224, 218)
-    if any(t in b for t in ('lantern', 'torch', 'end_rod', 'glowstone', 'redstone_lamp')):
+    if any(t in b for t in ('lantern', 'torch', 'end_rod', 'glowstone', 'redstone_lamp', 'shroomlight', 'ochre_froglight', 'campfire')):
         return (238, 209, 130)
-    if b in ('dirt', 'podzol', 'coarse_dirt'):
+    if b in ('dirt', 'rooted_dirt', 'podzol', 'coarse_dirt'):
         return (120, 89, 61)
-    if b in ('smoker', 'furnace'):
+    if b in ('smoker', 'furnace', 'blast_furnace', 'stonecutter', 'grindstone'):
         return (112, 112, 114)
     for color in sorted(colors, key=len, reverse=True):
         if b.startswith(color + '_'):
@@ -85,6 +99,8 @@ def colour(b: str) -> tuple[int, int, int]:
 def shape(b: str, p: dict[str, str]) -> list[tuple[float, float, float, float, float, float]]:
     if b == 'water':
         return [(0, 0, 0, 1, .88, 1)]
+    if b in RAIL_BLOCKS:
+        return [(0, 0, 0, 1, .08, 1)]
     if b.endswith('_slab'):
         t = p.get('type', 'bottom')
         return [(0, .5 if t == 'top' else 0, 0, 1, 1 if t != 'bottom' else .5, 1)]
@@ -121,29 +137,51 @@ def shape(b: str, p: dict[str, str]) -> list[tuple[float, float, float, float, f
             if p.get(f) in ('true', 'low', 'tall'):
                 pieces.append(ext)
         return pieces
-    if b in ('iron_chain', 'chain', 'end_rod', 'torch', 'redstone_torch'):
+    if b in ('iron_chain', 'chain', 'lightning_rod', 'end_rod', 'torch', 'redstone_torch', 'wall_torch', 'redstone_wall_torch'):
         return [(.45, 0, .45, .55, 1, .55)]
-    if b.endswith('_carpet') or b == 'moss_carpet':
+    if b.endswith(('_carpet', '_pressure_plate')) or b in ('moss_carpet', 'lily_pad'):
         return [(0, 0, 0, 1, .07, 1)]
-    if b.startswith('potted_') or b in ('flower_pot', 'fern', 'short_grass', 'tall_grass', 'poppy', 'dandelion', 'cornflower', 'azure_bluet', 'oxeye_daisy', 'lily_of_the_valley', 'peony', 'rose_bush', 'azalea', 'flowering_azalea', 'bush', 'sweet_berry_bush', 'candle', 'cake'):
+    if b.startswith('potted_') or b in ('flower_pot', 'fern', 'short_grass', 'tall_grass', 'large_fern', 'poppy', 'dandelion', 'cornflower', 'azure_bluet', 'oxeye_daisy', 'lily_of_the_valley', 'allium', 'blue_orchid', 'red_tulip', 'orange_tulip', 'white_tulip', 'pink_tulip', 'peony', 'rose_bush', 'lilac', 'sunflower', 'azalea', 'flowering_azalea', 'bush', 'sweet_berry_bush', 'candle', 'cake') or b.endswith('_candle'):
         return [(.2, 0, .2, .8, .6, .8)]
     return [(0, 0, 0, 1, 1, 1)]
 
 
-def svg(grid: dict[tuple[int, int, int], list[Any]], view: int = 0, cut: int = 18) -> str:
-    scale = 19
-    width, height = 940, 790
+def svg(
+    grid: dict[tuple[int, int, int], list[Any]],
+    view: int = 0,
+    cut: int | None = None,
+    bounds: Sequence[int] | None = None,
+) -> str:
+    width, height = 960, 800
+    pad = 36.0
+    if bounds is not None:
+        w, h, d = int(bounds[3]) + 1, int(bounds[4]) + 1, int(bounds[5]) + 1
+    else:
+        w = max([24] + [x + 1 for (x, _, _) in grid])
+        h = max([18] + [y + 1 for (_, y, _) in grid])
+        d = max([22] + [z + 1 for (_, _, z) in grid])
+
+    cut_limit = h if cut is None else cut
+    v_idx = view % 4
+    span_a, span_b = (w, d) if v_idx in (0, 2) else (d, w)
+    u_span = float(span_a + span_b)
+    u_mid = (span_a - span_b) * 0.5
+    vv_span = float(h) + u_span * 0.5
+    vv_mid = (u_span * 0.5 - float(h)) * 0.5
+    scale = min((width - 2 * pad) / max(1.0, u_span), (height - 2 * pad) / max(1.0, vv_span))
 
     def rotate(x: float, z: float) -> tuple[float, float]:
-        return ((x, z), (z, 24 - x), (24 - x, 22 - z), (22 - z, x))[view % 4]
+        return ((x, z), (z, w - x), (w - x, d - z), (d - z, x))[v_idx]
 
     def point(x: float, y: float, z: float) -> tuple[float, float]:
         a, b = rotate(x, z)
-        return (width / 2 + (a - b) * scale, 330 + (a + b) * scale / 2 - y * scale)
+        u = a - b
+        vv = (a + b) * 0.5 - y
+        return (width * 0.5 + (u - u_mid) * scale, height * 0.5 + (vv - vv_mid) * scale)
 
     faces: list[tuple[float, str]] = []
     for (x, y, z), cell in grid.items():
-        if not (0 <= x < 24 and 0 <= y < cut and 0 <= z < 22):
+        if not (0 <= x < w and 0 <= y < cut_limit and 0 <= z < d):
             continue
         b, p = state_parts(cell[3])
         if b == 'air':
@@ -160,7 +198,6 @@ def svg(grid: dict[tuple[int, int, int], list[Any]], view: int = 0, cut: int = 1
                 (x + a0, y + h0, z + c0), (x + a1, y + h0, z + c0), (x + a1, y + h0, z + c1), (x + a0, y + h0, z + c1),
                 (x + a0, y + h1, z + c0), (x + a1, y + h1, z + c0), (x + a1, y + h1, z + c1), (x + a0, y + h1, z + c1),
             ]
-            # Keep all four sides; painter ordering hides back faces.
             for inds, factor, offset in [
                 ((0, 1, 5, 4), .72, (0, 0, -1)),
                 ((1, 2, 6, 5), .84, (1, 0, 0)),
@@ -170,9 +207,9 @@ def svg(grid: dict[tuple[int, int, int], list[Any]], view: int = 0, cut: int = 1
             ]:
                 nx, ny, nz = x + offset[0], y + offset[1], z + offset[2]
                 neighbor = grid.get((nx, ny, nz), [0, 0, 0, 'air'])[3]
-                if full_block(cell[3]) and ny < cut and full_block(neighbor):
+                if full_block(cell[3]) and ny < cut_limit and full_block(neighbor):
                     continue
-                if b == 'water' and ny < cut and offset != (0, 1, 0) and (state_parts(neighbor)[0] == 'water' or full_block(neighbor)):
+                if b == 'water' and ny < cut_limit and offset != (0, 1, 0) and (state_parts(neighbor)[0] == 'water' or full_block(neighbor)):
                     continue
                 pts = [vertices[i] for i in inds]
                 depth = sum(sum(rotate(v[0], v[2])) + v[1] * .08 for v in pts) / 4
