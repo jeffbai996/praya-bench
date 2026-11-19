@@ -45,6 +45,20 @@ written reasons.
 There is no weighted total score. Use `prayabench summary` to inspect validity
 and completion side by side across models and scales.
 
+### Small wall-mounted fixtures
+
+For briefs that call for an access keypad, equipment badge or similar small
+fixture, assess its scale, orientation and placement from normal player height.
+A textured head displayed in an invisible item frame can make a compact wall
+mount. Look from the front and from an angle for a legible face, a plausible
+attachment surface, clearance from the entry route and a concealed frame.
+
+Record this as a visual finding. Use an in-game view or entity evidence to
+confirm the frame, its facing, item rotation and head texture. The voxel scenes
+represent head props and their mounts but cannot represent item-frame entities.
+Mark the invisible-frame technique unassessed when the submission format
+cannot carry that evidence.
+
 ## Vehicle, repair and art trials
 
 For vehicles, reuse one program across the four frozen orientations and report
