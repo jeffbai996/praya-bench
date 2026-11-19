@@ -7,7 +7,8 @@ from typing import Any
 import uuid
 
 from .scene import ASSETS, MAX_BYTES, MAX_CELLS, validate_cells
-from .tasks import TASK_SPECS, ground_grid, verify_run
+from .tasks import TASK_SPECS, ground_grid, init_run, verify_run
+from .voxel_tasks import FACINGS
 
 DEFAULT_IMAGE = 'python:3.12-slim'
 DEFAULT_SOURCE_LIMIT = 14000
@@ -31,6 +32,8 @@ def compile_build(
     diagnostic_overbudget: bool = False,
 ) -> dict[str, Any]:
     fixture = verify_run(run)
+    if fixture.get('track', 'voxel') != 'voxel':
+        raise ValueError('art tracks take declarative JSON directly through evaluate or compare')
     task = fixture['task']
     contract_limit = fixture.get('source_limit') or TASK_SPECS.get(task, {}).get('source_limit', DEFAULT_SOURCE_LIMIT)
     path = Path(source)
@@ -67,6 +70,7 @@ def compile_build(
     payload = {
         'source': code,
         'task': task,
+        'facing': fixture.get('facing'),
         'bounds': bounds,
         'ground': fixture.get('ground') or ground_grid(task),
         'assets': list(ASSETS),
@@ -108,3 +112,25 @@ def compile_build(
         raise RuntimeError('Sandbox wall-clock limit reached') from None
     finally:
         subprocess.run(['docker', 'rm', '-f', container], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)
+
+
+def compile_rotations(task: str, source: str | Path, directory: str | Path, image: str = DEFAULT_IMAGE):
+    """Run the same source against all four orientations with separate evidence."""
+    from .evaluate import evaluate, summarize_reports
+
+    root = Path(directory)
+    root.mkdir(parents=True, exist_ok=False)
+    results = []
+    for facing in FACINGS:
+        run = init_run(root / facing, task, facing)
+        try:
+            build = run / 'build.json'
+            compile_build(run, source, build, image)
+            checks = evaluate(run, build, run / 'checks.json')
+            entry = summarize_reports([(facing, checks)])['entries'][0]
+            results.append(dict(facing=facing, status='evaluated', **entry))
+        except (ValueError, RuntimeError, OSError, subprocess.TimeoutExpired) as e:
+            results.append(dict(facing=facing, status='failed', error=str(e)))
+    summary = {'task': task, 'runs': results}
+    (root / 'rotations.json').write_text(json.dumps(summary, indent=2))
+    return summary

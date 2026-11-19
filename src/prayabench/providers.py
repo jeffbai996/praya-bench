@@ -41,18 +41,20 @@ def generate(
     effort: str = 'medium',
     timeout: int = 390,
 ) -> Path:
-    verify_run(run)
+    fixture = verify_run(run)
     run_path = Path(run)
     out_path = Path(out)
     if out_path.exists():
         raise ValueError('output directory already exists')
     out_path.mkdir(parents=True)
     prompt = (run_path / 'prompt.txt').read_text() + '\nSUPPORTED PALETTE:\n' + (run_path / 'palette.txt').read_text()
+    track = fixture.get('track', 'voxel')
+    answer_path = out_path / ('answer.py' if track == 'voxel' else 'answer.json')
     if provider == 'codex':
         cmd = [
             'codex', 'exec', '--ignore-user-config', '--skip-git-repo-check', '--ephemeral',
             '--sandbox', 'read-only', '--model', model, '-c', 'model_reasoning_effort=' + json.dumps(effort),
-            '--output-last-message', str((out_path / 'answer.py').resolve()), '-',
+            '--output-last-message', str(answer_path.resolve()), '-',
         ]
     elif provider == 'claude':
         cmd = [
@@ -70,6 +72,7 @@ def generate(
     record: dict[str, Any] = {
         'provider': provider,
         'requested_model': model,
+        'track': track,
         'effort': effort,
         'timeout_seconds': timeout,
         'prompt_sha256': sha(run_path / 'prompt.txt'),
@@ -98,8 +101,8 @@ def generate(
         if provider != 'codex':
             answer, usage = final_result(stdout)
             record.update(usage)
-            (out_path / 'answer.py').write_text(answer)
-        if not (out_path / 'answer.py').exists():
+            answer_path.write_text(answer)
+        if not answer_path.exists():
             raise RuntimeError('Client returned no answer file')
         record['status'] = 'returned'
     except subprocess.TimeoutExpired:
@@ -117,4 +120,4 @@ def generate(
     finally:
         record['elapsed_seconds'] = round(time.monotonic() - start, 3)
         (out_path / 'run.json').write_text(json.dumps(record, indent=2))
-    return out_path / 'answer.py'
+    return answer_path

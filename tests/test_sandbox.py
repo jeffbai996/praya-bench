@@ -4,7 +4,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from prayabench.sandbox import compile_build
+from prayabench.sandbox import compile_build, compile_rotations
 from prayabench.tasks import init_run
 
 @unittest.skipUnless(os.environ.get('PRAYABENCH_DOCKER_TESTS')=='1','opt-in Docker integration tests')
@@ -17,6 +17,20 @@ class SandboxTests(unittest.TestCase):
             self.assertEqual(result['cells'][0][:4],[5,3,8,'stone'])
             meta=json.loads(Path(str(out)+'.sandbox.json').read_text())
             self.assertEqual(meta['network'],'none');self.assertTrue(meta['image_id'].startswith('sha256:'))
+
+    def test_one_vehicle_program_receives_all_four_frozen_facings(self):
+        with tempfile.TemporaryDirectory() as d:
+            source = Path(d)/'vehicle.py'
+            source.write_text(
+                "def build(put,box,head,sign,ground,facing):\n"
+                "    put(11,3,11,'oak_stairs[facing='+facing+']')\n"
+            )
+            root = Path(d)/'rotations'
+            summary = compile_rotations('box-truck',source,root)
+            self.assertEqual([r['status'] for r in summary['runs']],['evaluated']*4)
+            for facing in ('north','east','south','west'):
+                result = json.loads((root/facing/'build.json').read_text())
+                self.assertEqual(result['cells'][0][3],f'oak_stairs[facing={facing}]')
 
     def test_import_and_file_access_rejected(self):
         with tempfile.TemporaryDirectory() as d:

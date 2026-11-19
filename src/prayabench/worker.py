@@ -12,6 +12,7 @@ def compile_source(
     source_limit=14000,
     cell_limit=90000,
     write_limit=180000,
+    facing=None,
 ):
     if len(source) > source_limit:
         raise ValueError(f'source exceeds {source_limit} characters')
@@ -87,7 +88,8 @@ def compile_source(
     }
     ns = {'__builtins__': safe}
     exec(compile(tree, 'submission', 'exec'), ns)
-    ns['build'](put, box, head, sign, ground)
+    args = (put, box, head, sign, ground)
+    ns['build'](*args, facing) if facing is not None else ns['build'](*args)
     return {'cells': list(cells.values())}
 
 
@@ -102,6 +104,7 @@ if __name__ == '__main__':
             source_limit=data.get('source_limit', 14000),
             cell_limit=data.get('cell_limit', 90000),
             write_limit=data.get('write_limit', 180000),
+            facing=data.get('facing'),
         ))
         if len(output) > 12_000_000:
             raise ValueError('output exceeds limit')

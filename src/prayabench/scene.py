@@ -60,7 +60,8 @@ PALETTE = set(
     'moss_block moss_carpet player_head player_wall_head iron_door iron_trapdoor '
     'oak_leaves spruce_leaves birch_leaves jungle_leaves acacia_leaves dark_oak_leaves '
     'cherry_leaves mangrove_leaves azalea_leaves flowering_azalea_leaves '
-    'candle cake lever stone_button polished_blackstone_button stone_pressure_plate'.split()
+    'candle cake lever stone_button polished_blackstone_button stone_pressure_plate '
+    'shulker_box snow coal_block'.split()
 )
 for wood in WOODS:
     for suffix in (
@@ -78,7 +79,8 @@ for suffix in (
     PALETTE.add(f'bamboo_{suffix}')
 PALETTE.update(('bamboo_block', 'stripped_bamboo_block'))
 for color in COLORS:
-    for suffix in ('concrete', 'terracotta', 'wool', 'carpet', 'stained_glass', 'stained_glass_pane', 'bed', 'candle'):
+    for suffix in ('concrete', 'terracotta', 'wool', 'carpet', 'stained_glass', 'stained_glass_pane', 'bed', 'candle',
+                   'banner', 'wall_banner', 'shulker_box'):
         PALETTE.add(f'{color}_{suffix}')
 for stone in (
     'stone', 'cobblestone', 'mossy_cobblestone', 'stone_brick', 'mossy_stone_brick',
@@ -196,10 +198,10 @@ def full_block(state: str) -> bool:
         return False
     if b.endswith('_slab'):
         return p.get('type', 'bottom') == 'double'
-    if b.endswith(('_stairs', '_pane', '_bars', '_fence', '_fence_gate', '_wall', '_trapdoor', '_head', '_bed', '_leaves', '_candle')):
+    if b.endswith(('_stairs', '_pane', '_bars', '_fence', '_fence_gate', '_wall', '_trapdoor', '_head', '_bed', '_leaves', '_candle', '_banner')):
         return False
     if b.startswith('potted_') or b in GROUND_FLORA or b in {
-        'water', 'lily_pad', 'chain', 'iron_chain', 'lightning_rod',
+        'water', 'snow', 'lily_pad', 'chain', 'iron_chain', 'lightning_rod',
         'lantern', 'soul_lantern', 'end_rod', 'flower_pot', 'candle', 'cake',
         'composter', 'cauldron', 'water_cauldron', 'hopper', 'lectern',
         'grindstone', 'stonecutter', 'anvil', 'bell', 'scaffolding',

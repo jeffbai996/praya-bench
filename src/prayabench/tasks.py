@@ -6,8 +6,11 @@ from typing import Any
 
 from . import __version__
 from .scene import ASSETS, PALETTE
+from .art import ART_TASKS, art_fixture, art_palette, art_prompt
+from .voxel_tasks import EXTRA_VOXEL, FACINGS, VEHICLES, configure_fixture, task_extra
 
-SCALES = ('small', 'medium', 'large', 'terraforming')
+SCALES = ('small', 'medium', 'large', 'terraforming', 'asset')
+TRACKS = ('voxel', 'map-art', 'loom-banner', 'head-skin')
 
 TASK_SPECS: dict[str, dict[str, Any]] = {
     # --- SMALL: street micro-infrastructure, parks, compact buildings ---
@@ -550,6 +553,8 @@ TASK_SPECS: dict[str, dict[str, Any]] = {
     },
 }
 
+TASK_SPECS.update(EXTRA_VOXEL)
+TASK_SPECS.update(ART_TASKS)
 TASKS: dict[str, str] = {k: v['brief'] for k, v in TASK_SPECS.items()}
 
 
@@ -659,9 +664,14 @@ def _rect_seam_pairs(rx0: int, rz0: int, rx1: int, rz1: int, w: int, d: int) -> 
     return pairs
 
 
-def fixture(task: str) -> dict[str, Any]:
+def fixture(task: str, facing: str | None = None) -> dict[str, Any]:
     if task not in TASK_SPECS:
         raise ValueError('unknown task')
+    if facing is not None and (task not in VEHICLES or facing not in FACINGS):
+        raise ValueError('facing is only supported on vehicle tasks')
+    facing = facing or 'north'
+    if task in ART_TASKS:
+        return art_fixture(task)
     spec = TASK_SPECS[task]
     bounds = list(spec['bounds'])
     w, h, d = bounds[3] + 1, bounds[4] + 1, bounds[5] + 1
@@ -870,6 +880,15 @@ def fixture(task: str) -> dict[str, Any]:
                     put(pier_x, y, z, 'stone_bricks')
                     protected.add((pier_x, y, z))
 
+    configure_fixture(task, facing, cells, protected, put)
+    if task in EXTRA_VOXEL:
+        ground = [[-1]*d for _ in range(w)]
+        # Surface elevation uses the actual frozen scene, including rail or roof.
+        for (x,y,z), cell in cells.items():
+            ground[x][z] = max(y, ground[x][z])
+    else:
+        ground = ground_grid(task)
+
     if task == 'chunk-cliff-scar':
         street_seeds = [[x, z] for x in range(w) for z in range(d) if (x <= 7 or x >= 24) and 7 <= z <= 11]
     elif task == 'chunk-river-seam':
@@ -890,12 +909,15 @@ def fixture(task: str) -> dict[str, Any]:
         'category': spec['category'],
         'bounds': bounds,
         'source_limit': spec['source_limit'],
-        'ground': ground_grid(task),
+        'ground': ground,
         'street_seeds': street_seeds,
         'requirements': spec['requirements'],
         'cells': list(cells.values()),
         'protected': [list(p) for p in sorted(protected)],
     }
+    out['track'] = 'voxel'
+    if task in VEHICLES:
+        out['facing'] = facing
     if 'repair_rect' in spec:
         rx0, rz0, rx1, rz1 = spec['repair_rect']
         out['repair_rect'] = [rx0, rz0, rx1, rz1]
@@ -917,54 +939,79 @@ def sha(path: str | Path) -> str:
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def init_run(path: str | Path, task: str) -> Path:
+def init_run(path: str | Path, task: str, facing: str | None = None) -> Path:
     if task not in TASK_SPECS:
         raise ValueError('unknown task')
+    f = fixture(task, facing)
     out_path = Path(path)
     out_path.mkdir(parents=True, exist_ok=False)
-    f = fixture(task)
     spec = TASK_SPECS[task]
-    bounds = spec['bounds']
-    source_limit = spec['source_limit']
-    cell_limit = max(30000, (bounds[3] + 1) * (bounds[4] + 1) * (bounds[5] + 1) * 2)
+    track = f['track']
     (out_path / 'fixture.json').write_text(json.dumps(f, indent=2))
-    prompt = contract_text(bounds, source_limit) + f'\nTASK: {task} ({spec["scale"]} · {spec["category"]})\n' + spec['brief'] + spec['extra']
+    metadata = {}
+    if track == 'voxel':
+        bounds = spec['bounds']
+        source_limit = spec['source_limit']
+        prompt = contract_text(bounds, source_limit) + f'\nTASK: {task} ({spec["scale"]} · {spec["category"]})\n' + spec['brief'] + spec['extra']
+        if task in EXTRA_VOXEL:
+            prompt += '\nThis challenge uses its own site geometry and restrictions described above.\n'
+        if task in VEHICLES:
+            prompt = prompt.replace('build(put, box, head, sign, ground)', 'build(put, box, head, sign, ground, facing)')
+            prompt += task_extra(task, f['facing'])
+            metadata['facing'] = f['facing']
+        palette = '\n'.join(sorted(PALETTE)) + '\n'
+        metadata.update(bounds=bounds, source_limit=source_limit,
+                        scene_cell_limit=min(90000, max(30000, (bounds[3]+1)*(bounds[4]+1)*(bounds[5]+1)*2)))
+    else:
+        prompt = art_prompt(f)
+        palette = art_palette(track)
     (out_path / 'prompt.txt').write_text(prompt)
-    (out_path / 'palette.txt').write_text('\n'.join(sorted(PALETTE)) + '\n')
+    (out_path / 'palette.txt').write_text(palette)
     hashes = {n: sha(out_path / n) for n in ('fixture.json', 'prompt.txt', 'palette.txt')}
     (out_path / 'manifest.json').write_text(json.dumps({
-        'schema_version': 3,
+        'schema_version': 4,
         'package_version': __version__,
         'task': task,
         'scale': spec['scale'],
         'category': spec['category'],
-        'bounds': bounds,
+        'track': track,
         'hashes': hashes,
-        'source_limit': source_limit,
-        'scene_cell_limit': min(90000, cell_limit),
+        **metadata,
     }, indent=2))
     return out_path
 
 
-def init_suite(directory: str | Path, scale: str | None = None, category: str | None = None) -> list[Path]:
+def init_suite(
+    directory: str | Path, scale: str | None = None, category: str | None = None,
+    track: str | None = None, all_facings: bool = False,
+) -> list[Path]:
     if scale is not None and scale not in SCALES:
         raise ValueError(f'unknown scale: {scale}')
     selected = [
         name for name, spec in TASK_SPECS.items()
         if (scale is None or spec['scale'] == scale)
         and (category is None or spec['category'] == category)
+        and (track is None or spec.get('track', 'voxel') == track)
     ]
     if not selected:
         raise ValueError('no tasks matched filter')
     root = Path(directory)
     root.mkdir(parents=True, exist_ok=False)
-    created = [init_run(root / task_name, task_name) for task_name in selected]
+    created = []
+    for task_name in selected:
+        if all_facings and task_name in VEHICLES:
+            created.extend(init_run(root / f'{task_name}-{face}', task_name, face) for face in FACINGS)
+        else:
+            created.append(init_run(root / task_name, task_name))
     (root / 'suite.json').write_text(json.dumps({
         'schema_version': 1,
         'package_version': __version__,
         'scale_filter': scale,
         'category_filter': category,
+        'track_filter': track,
+        'all_facings': all_facings,
         'tasks': selected,
+        'runs': [p.name for p in created],
     }, indent=2))
     return created
 

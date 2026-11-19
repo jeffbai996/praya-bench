@@ -31,11 +31,10 @@ class MultiscaleAndTerraformingTests(unittest.TestCase):
         }
         all_expected = set().union(*expected_by_scale.values())
         self.assertEqual(len(all_expected), 20)
-        self.assertEqual(set(TASKS), all_expected)
-        self.assertEqual(set(SCALES), {'small', 'medium', 'large', 'terraforming'})
+        self.assertTrue(all_expected <= set(TASKS))
+        self.assertEqual(set(SCALES), {'small', 'medium', 'large', 'terraforming', 'asset'})
         for scale_name, names in expected_by_scale.items():
-            actual = {k for k, v in TASK_SPECS.items() if v['scale'] == scale_name}
-            self.assertEqual(actual, names)
+            self.assertEqual({TASK_SPECS[k]['scale'] for k in names}, {scale_name})
 
         with tempfile.TemporaryDirectory() as d:
             for task_name in sorted(all_expected):

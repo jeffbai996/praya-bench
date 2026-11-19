@@ -97,6 +97,14 @@ def colour(b: str) -> tuple[int, int, int]:
 
 
 def shape(b: str, p: dict[str, str]) -> list[tuple[float, float, float, float, float, float]]:
+    if b == 'snow':
+        layers = p.get('layers', '1')
+        height = min(8, max(1, int(layers))) / 8 if layers.isdigit() else .125
+        return [(0, 0, 0, 1, height, 1)]
+    if b == 'hopper':
+        return [(.08, .45, .08, .92, 1, .92), (.3, .14, .3, .7, .45, .7), (.4, 0, .4, .6, .14, .6)]
+    if b.endswith('shulker_box'):
+        return [(.02, .02, .02, .98, .48, .98), (.02, .5, .02, .98, .98, .98)]
     if b == 'water':
         return [(0, 0, 0, 1, .88, 1)]
     if b in RAIL_BLOCKS:
@@ -114,12 +122,17 @@ def shape(b: str, p: dict[str, str]) -> list[tuple[float, float, float, float, f
     if b.endswith(('_hanging_sign', '_wall_hanging_sign')):
         f = p.get('facing', 'north')
         return [(.15, .12, .44, .85, .72, .56)] if f in ('north', 'south') else [(.44, .12, .15, .56, .72, .85)]
-    if 'wall_sign' in b or b == 'player_wall_head':
-        t = .12 if 'sign' in b else .5
+    if 'wall_sign' in b or b == 'player_wall_head' or b.endswith('_wall_banner'):
+        t = .08 if b.endswith('_wall_banner') else .12 if 'sign' in b else .5
         f = p.get('facing', 'north')
         x0, x1 = (0, t) if f == 'east' else (1 - t, 1) if f == 'west' else (.15, .85)
         z0, z1 = (1 - t, 1) if f == 'north' else (0, t) if f == 'south' else (.15, .85)
-        return [(x0, .3, z0, x1, .8, z1)]
+        return [(x0, 0 if b.endswith('_wall_banner') else .3, z0, x1, .95 if b.endswith('_wall_banner') else .8, z1)]
+    if b.endswith('_banner'):
+        rotation = p.get('rotation', '0')
+        return [(.45, 0, .45, .55, .9, .55),
+                (.48, .16, .08, .52, .85, .92) if rotation in ('4', '12')
+                else (.08, .16, .48, .92, .85, .52)]
     if b == 'player_head':
         return [(.25, 0, .25, .75, .5, .75)]
     if b in ('lantern', 'soul_lantern'):

@@ -13,6 +13,9 @@ from .scene import (
     flush_top, full_block, load_json, name, passable, state_parts, validate_cells,
 )
 from .tasks import TASK_SPECS, verify_run
+from .art import assess_art
+from .voxel_checks import add_scene_checks
+from .voxel_tasks import VEHICLES
 
 LIGHT_BLOCKS = frozenset({
     'lantern', 'soul_lantern', 'sea_lantern', 'shroomlight',
@@ -111,12 +114,15 @@ def block_from(grid: dict[tuple[int, int, int], list[Any]], pos: tuple[int, int,
 
 
 def assess(fixture: dict[str, Any], submission: dict[str, Any]) -> dict[str, Any]:
+    if fixture.get('track', 'voxel') != 'voxel':
+        return assess_art(fixture, submission)
     edits = validate_cells(submission)
     base = validate_cells({'cells': fixture['cells']})
     grid = base | edits
     protected = {tuple(p) for p in fixture['protected']}
     issues: list[dict[str, Any]] = []
     task = fixture['task']
+    vehicle = task in VEHICLES
     spec = TASK_SPECS.get(task, {})
     reqs = fixture.get('requirements') or spec.get('requirements', {})
     bounds = fixture.get('bounds') or spec.get('bounds', [0, 0, 0, 23, 17, 21])
@@ -179,7 +185,7 @@ def assess(fixture: dict[str, Any], submission: dict[str, Any]) -> dict[str, Any
         elif b.endswith('_hanging_sign'):
             if not _can_hang_from(above):
                 add('unsupported_hanging_sign', pos, f'Ceiling hanging sign cannot hang from {above}.')
-        elif 'wall_sign' in b or b == 'player_wall_head' or b in ('wall_torch', 'redstone_wall_torch'):
+        elif 'wall_sign' in b or b == 'player_wall_head' or b.endswith('_wall_banner') or b in ('wall_torch', 'redstone_wall_torch'):
             vec = VEC.get(p.get('facing', 'north'), (0, 0, -1))
             back_pos = (x - vec[0], y - vec[1], z - vec[2])
             back = block(back_pos)
@@ -211,8 +217,16 @@ def assess(fixture: dict[str, Any], submission: dict[str, Any]) -> dict[str, Any
             elif c[5] not in ('road-sign', 'traffic-sign'):
                 add('standing_sign', pos, 'Non-traffic signs should mount on architecture.', 'warn')
 
-        if b.endswith(('_sign', '_hanging_sign', '_wall_hanging_sign')) and not any(s.strip() for s in (c[4] or [])):
+        blank_trim = vehicle and 'wall_sign' in b and 'hanging' not in b
+        if b.endswith(('_sign', '_hanging_sign', '_wall_hanging_sign')) and not blank_trim and not any(s.strip() for s in (c[4] or [])):
             add('blank_sign', pos, 'No visible sign text.', 'warn')
+
+        if b == 'snow':
+            layers = p.get('layers', '1')
+            if layers not in tuple(str(i) for i in range(1, 9)):
+                add('invalid_snow_layers', pos, 'Layered snow needs layers=1..8.')
+            if not flush_top(below):
+                add('floating_fixture', pos, f'Snow has no flush support below ({below}).')
 
         if reqs.get('forbid_new_build_claim') and c[4]:
             joined = ' '.join(c[4]).lower()
@@ -329,7 +343,7 @@ def assess(fixture: dict[str, Any], submission: dict[str, Any]) -> dict[str, Any
         subsurface_void_cols = _check_subsurface_voids(edits, block, repair_rect, w, h, d, add)
 
     # --- 3D Sky + Block Light check for enclosed dark rooms ---
-    if edits:
+    if edits and not vehicle:
         _check_interior_darkness(grid, edits, block, w, h, d, add)
 
     # --- Half-block walkability flood from protected street seeds ---
@@ -373,7 +387,7 @@ def assess(fixture: dict[str, Any], submission: dict[str, Any]) -> dict[str, Any
             doors.append([x, y, z])
             if (x, z, 2 * y) in seen:
                 reachable_doors.append([x, y, z])
-            else:
+            elif not vehicle:
                 add('unreachable_door', (x, y, z), 'No approximate route from protected street; one-block jumps allowed.')
 
     required_doors = reqs.get('reachable_doors', 0 if task == 'pocket-park' else 1)
@@ -398,9 +412,10 @@ def assess(fixture: dict[str, Any], submission: dict[str, Any]) -> dict[str, Any
     )
 
     return {
-        'schema_version': 3,
+        'schema_version': 4,
         'evaluator_version': __version__,
         'task': task,
+        'track': 'voxel',
         'scale': fixture.get('scale') or spec.get('scale', 'small'),
         'bounds': bounds,
         'edited_cells': len(edits),
@@ -615,6 +630,7 @@ def _assess_completion(
             'met': bool(met),
         })
 
+    add_scene_checks(fixture, grid, edits, block_fn, seen, record)
     non_air_edits = sum(1 for c in edits.values() if name(c[3]) != 'air')
     if 'min_edited_cells' in reqs:
         target = reqs['min_edited_cells']
@@ -875,6 +891,10 @@ def evaluate(run: str | Path, build: str | Path, out: str | Path) -> dict[str, A
     report = assess(fixture, submission)
     report['submission_sha256'] = hashlib.sha256(Path(build).read_bytes()).hexdigest()
     report['evaluator_sha256'] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+    modules = ('scene.py','voxel_checks.py','voxel_tasks.py') if report['track']=='voxel' else ('art.py',)
+    report['evaluator_dependencies'] = {
+        module: hashlib.sha256(Path(__file__).with_name(module).read_bytes()).hexdigest() for module in modules
+    }
     Path(out).write_text(json.dumps(report, indent=2, ensure_ascii=False))
     return report
 
@@ -890,6 +910,7 @@ def summarize_reports(named_reports: list[tuple[str, dict[str, Any]]]) -> dict[s
         entries.append({
             'label': label,
             'task': rep.get('task', 'unknown'),
+            'track': rep.get('track', 'voxel'),
             'scale': rep.get('scale', 'unknown'),
             'edited_cells': rep.get('edited_cells', 0),
             'errors': errors,

@@ -45,6 +45,25 @@ written reasons.
 There is no weighted total score. Use `prayabench summary` to inspect validity
 and completion side by side across models and scales.
 
+## Vehicle, repair and art trials
+
+For vehicles, reuse one program across the four frozen orientations and report
+the pass pattern. Four independently prompted builds measure orientation handling
+per attempt, while a single reused program measures transformation consistency.
+For retrofit experiments use the supplied original scene, keep its protected
+geometry, and record both the repaired brief checks and the amount of change.
+`inspector-repair` is a repeatable correction turn with an authored starting
+build and fixed feedback. A live multi-turn model experiment must record the
+original model output and the feedback it received.
+
+For map art, inspect the quantized preview at final tile scale. Probe checks
+measure visual detail in required regions. Review text and arrows by eye. For
+banners, per-dye IoU is intersection over union on schematic masks at 16×32.
+The public targets are learnable from repository code, so use held-out targets
+for leaderboard-style comparisons. For head skins, review the UV atlas and the
+front/back preview. The preview composites the outer layer without modelling
+the in-game shell offset or lighting.
+
 ## Native adapters and known limits
 
 The CLI adapters invoke authenticated local clients (`codex`, `claude`, `agy`),

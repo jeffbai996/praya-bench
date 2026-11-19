@@ -1,6 +1,6 @@
 # prayabench
 
-**A visual benchmark for AI building and terraforming in Minecraft.**
+**A visual benchmark for AI building, terraforming, vehicles and art in Minecraft.**
 
 Give models the same plot and brief—from a kerbside bus shelter to an eight-storey
 office tower or a sheared `16×16` chunk error. Inspect what they build, check
@@ -10,7 +10,7 @@ subsurface grading, then reveal who built what.
 ![Synthetic reference scene, not a model result](docs/demo.svg)
 
 prayabench is an experimental, MIT-licensed toolkit for comparing generated voxel
-builds and terrain repairs. It keeps construction validity, brief completion,
+builds, repairs and artwork. It keeps validity, brief completion,
 visual preference and runtime separate. There is no magic combined score and no
 authoritative leaderboard.
 
@@ -32,18 +32,19 @@ cutaways, review automated findings and brief checks, and download your review
 notes. The two demo scenes are deterministic package examples, **not model results**.
 The HTML works offline and sends nothing anywhere.
 
-## Benchmark suite (20 tasks across 4 scales)
+## Benchmark suite
 
 ```sh
 prayabench tasks
 prayabench tasks --scale large
 prayabench tasks --scale terraforming --json
+prayabench tasks --track map-art
 prayabench init runs/chunk --task chunk-cliff-scar
 prayabench init-suite runs/terra --scale terraforming
 ```
 
 `init` freezes `prompt.txt`, `palette.txt` and a synthetic `fixture.json` with
-per-task `bounds` and `source_limit`, pinned by SHA-256 hashes in `manifest.json`.
+per-task geometry and constraints, pinned by SHA-256 hashes in `manifest.json`.
 
 ### `small` — Street furniture, parks & compact buildings
 - **`transit-shelter`** (`18×14×16`, `civic-micro`): kerbside bus/tram canopy, windscreen glazing, route sign, bench, `ticket_validator` and `trash_bin`.
@@ -72,6 +73,55 @@ per-task `bounds` and `source_limit`, pinned by SHA-256 hashes in `manifest.json
 - **`chunk-river-seam`** (`32×20×26`, `terraforming-chunk-error`): excavate a displaced `y=10` `16×16` chunk monolith damming an east–west creek, restore continuous water flow and sandy banks across the seams, and span the creek with a footbridge.
 - **`coastal-seawall`** (`28×20×26`, `terraforming-waterfront`): re-grade an eroded coastal bluff between an upland `y=7` street and a protected tidal bay into a masonry seawall and stepped waterfront promenade.
 - **`quarry-reclamation`** (`28×22×26`, `terraforming-reclamation`): reclaim a gouged raw-stone quarry pit (`y=1`) into a solid-filled terraced sunken garden and pond connected by stairs from the street.
+
+### Vehicles, civil works and retrofits
+
+- **Vehicles** include a box truck, bus, ambulance, rail coach and ferry. Each has four
+  frozen compass orientations. The checks cover the envelope, body connectivity and
+  the relevant kerbside door, axles, couplings or navigation lights. Vehicles can
+  use shulker boxes, banners, hoppers, layered snow and blank trim signs.
+- **Civil works** include a diagonal road, curved tunnel and junction sign.
+  Checks cover full road width, tunnel clearance, the protected hill and a
+  specified sightline to the sign.
+- **Field and retrofit cases** include two specimen trees, a washroom, rooftop HVAC,
+  a facade retrofit, a shop conversion with preserved stairs and historic placard,
+  and a four-cell inspector repair on a supplied faulty café.
+
+```sh
+prayabench init-suite runs/vehicles --category vehicle --all-facings
+prayabench compile-rotations city-bus bus.py --out runs/bus-rotations
+```
+
+Vehicle build functions use `build(put, box, head, sign, ground, facing)`.
+Reuse the same source on all four fixtures to test rotation. Rotate a north-facing
+position on the 23×23 plot to face east with `(x, z) → (22 - z, x)`, and rotate
+its directional block properties too. `compile-rotations` freezes, compiles and
+evaluates each orientation and writes a `rotations.json` summary.
+
+### Map art, loom banners and head skins
+
+These nine cases accept declarative JSON. `generate` saves their raw response as
+`answer.json`. Save the JSON object to a file and pass it directly to
+`evaluate` and `compare`.
+
+| Track | Cases | Checks and previews |
+| --- | --- | --- |
+| `map-art` | Storefront wordmark, transit departure board, motorway guide | Contrast after quantization to a fixed map-palette subset, alpha coverage, detail regions and tile seams |
+| `loom-banner` | Harbour burgee, civic shield, rail roundel | Six-layer cap, supported loom patterns, exact pixel agreement and per-dye IoU on schematic masks |
+| `head-skin` | Parking meter, HVAC vent, mailbox | Java 64×64 head UV islands, six opaque inner faces, outer-layer relief, front/back contrast and assembled head previews |
+
+```sh
+prayabench init runs/board --task map-departure-board
+prayabench evaluate runs/board answers/board.json --out runs/board/checks.json
+prayabench compare runs/board answers/board.json --out runs/board/comparison.html
+```
+
+The raster input is a palette of single-character symbols, ordered rectangles
+`[x,y,width,height,symbol]`, and optional sparse rows. Use `#RRGGBB` or
+`#RRGGBBAA` for colours. A loom submission is an ordered recipe
+such as `{"base":"blue","layers":[["stripe_middle","white"]]}`. Each frozen
+prompt supplies the coordinates, target or pattern vocabulary for its case.
+Readability and asset recognition still need visual review.
 
 ### Compile Python submissions in Docker
 
