@@ -28,6 +28,15 @@ def main() -> None:
     a.add_argument('--all-facings', action='store_true')
     a = sub.add_parser('demo')
     a.add_argument('directory')
+    a = sub.add_parser('example')
+    a.add_argument('task', choices=TASKS)
+    a.add_argument('--facing', choices=FACINGS)
+    a.add_argument('--out', required=True)
+    a = sub.add_parser('atlas')
+    a.add_argument('out')
+    a.add_argument('--scale', choices=SCALES)
+    a.add_argument('--category')
+    a.add_argument('--track', choices=TRACKS)
     a = sub.add_parser('evaluate')
     a.add_argument('run')
     a.add_argument('build')
@@ -101,6 +110,15 @@ def main() -> None:
         elif args.cmd == 'demo':
             from .demo import demo
             print(demo(args.directory))
+        elif args.cmd == 'example':
+            from .examples import example
+            out_path = Path(args.out)
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            out_path.write_text(json.dumps(example(args.task, args.facing), indent=2))
+            print(out_path)
+        elif args.cmd == 'atlas':
+            from .examples import atlas
+            print(atlas(args.out, scale=args.scale, category=args.category, track=args.track))
         elif args.cmd == 'evaluate':
             from .evaluate import evaluate
             result = evaluate(args.run, args.build, args.out)

@@ -195,6 +195,7 @@ def configure_fixture(task, facing, cells, protected, put):
         if small:
             put(5, 5, 6, 'oak_wall_sign[facing=north]', ['Cafe hours'])
             put(12, 6, 9, 'end_rod[facing=up]')
+            protected.discard((12, 6, 9))
             put(8, 3, 6, 'stone_bricks')
 
 

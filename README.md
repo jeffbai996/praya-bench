@@ -41,10 +41,14 @@ prayabench tasks --scale terraforming --json
 prayabench tasks --track map-art
 prayabench init runs/chunk --task chunk-cliff-scar
 prayabench init-suite runs/terra --scale terraforming
+prayabench example city-bus --facing east --out runs/bus-east.json
+prayabench atlas runs/reference-atlas.html
 ```
 
 `init` freezes `prompt.txt`, `palette.txt` and a synthetic `fixture.json` with
 per-task geometry and constraints, pinned by SHA-256 hashes in `manifest.json`.
+`example` and `atlas` export deterministic reference examples (not model results)
+covering every task in the suite.
 
 ### `small` — Street furniture, parks & compact buildings
 - **`transit-shelter`** (`18×14×16`, `civic-micro`): kerbside bus/tram canopy, windscreen glazing, route sign, bench, `ticket_validator` and `trash_bin`.
