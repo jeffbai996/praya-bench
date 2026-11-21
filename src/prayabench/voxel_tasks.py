@@ -281,7 +281,7 @@ def configure_fixture(task, facing, cells, protected, put):
                 put(x, 13, rear, 'stone_brick_slab[type=bottom]')
                 if x in (6, 7, 10, 13, 14):
                     put(x, 8, front - 1, 'smooth_quartz_stairs[facing=south,half=top]')
-            put(9, 4, 6, 'oak_wall_sign[facing=north]', ['| 28 |', '---', 'Pacific Ave', ''])
+            put(9, 4, 6, 'oak_wall_sign[facing=north]', ['| 28 |', '---', 'Cedar St', ''])
             put(10, 5, 6, 'smooth_quartz_slab[type=bottom]')
             put(5, 5, 8, 'oak_wall_sign[facing=east]', ['Built', '-----', 'Oct. 8,', '2012'])
             put(5, 6, 8, 'air', frame={'facing': 'east', 'item': 'wooden_axe'})

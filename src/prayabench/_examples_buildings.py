@@ -261,7 +261,7 @@ def _small_house() -> dict[str, Any]:
 
 def _utility_substation() -> dict[str, Any]:
     b = VoxelBuilder('substation')
-    # CLP Power 132kV Urban GIS Substation (358 Pacific Ave) at x=2..19, z=6..17
+    # City Power 132kV urban GIS substation (358 Cedar St) at x=2..19, z=6..17
     b.box(2, 2, 6, 19, 2, 17, 'polished_andesite', component='floor')
     b.box(4, 2, 5, 7, 2, 5, 'polished_andesite', component='apron')
 
@@ -309,9 +309,9 @@ def _utility_substation() -> dict[str, Any]:
     b.put(5, 6, 9, 'sea_lantern', component='lights')
     b.put(7, 6, 12, 'sea_lantern', component='lights')
 
-    # Exterior CLP identity, address & HV warning signage
-    b.address_plaque(6, 4, 5, 'north', 358, 'Pacific Ave', '太平洋大道')
-    b.sign(8, 6, 5, 'north', ['| CLP Power |', '-------------', '132kV GIS Stn', '中華電力變電站'], wood='birch', component='facade')
+    # Exterior utility identity, address & HV warning signage
+    b.address_plaque(6, 4, 5, 'north', 358, 'Cedar St', '雪松街')
+    b.sign(8, 6, 5, 'north', ['| City Power |', '-------------', '132kV GIS Stn', '城市電力變電站'], wood='birch', component='facade')
     b.framed_sign(11, 4, 5, 'north', 'DANGER 132kV', 'Auth. Only', wood='oak', component='facade')
 
     # Enclosed outdoor HV transformer bay (x=11..19, z=6..17): grounded sill + iron_bars + top lintel (zero floating_pane!)
@@ -424,7 +424,7 @@ def _canal_crossing() -> dict[str, Any]:
 
 def _corner_shophouse() -> dict[str, Any]:
     b = VoxelBuilder('shophouse')
-    # Sun Wah Bakery (新華餅家, 202 Pacific Ave): body at x=5..17, z=6..17, using x=4 and z=5 as 1-block street setback!
+    # Golden Wheat Bakery (金麥餅家, 202 Cedar St): body at x=5..17, z=6..17, using x=4 and z=5 as 1-block street setback!
     b.box(4, 2, 5, 17, 2, 17, 'polished_andesite', component='floor')
     b.box(6, 2, 7, 16, 2, 16, 'smooth_stone', component='floor')
     b.box(5, 3, 6, 17, 10, 17, 'bricks', component='wall')
@@ -504,8 +504,8 @@ def _corner_shophouse() -> dict[str, Any]:
     b.head(9, 11, 9, 'ac_unit', facing='north', component='roof')
 
     # Signage: exterior address plaque, north fascia, west lane menu board & interior Built placard + stone_axe frame
-    b.address_plaque(8, 4, 5, 'north', 202, 'Pacific Ave', '太平洋大道')
-    b.sign(10, 5, 5, 'north', ['Sun Wah Bakery', '新華餅家', '--------------', 'Buns & Coffee'], wood='spruce', component='facade')
+    b.address_plaque(8, 4, 5, 'north', 202, 'Cedar St', '雪松街')
+    b.sign(10, 5, 5, 'north', ['Golden Wheat', '金麥餅家', '--------------', 'Buns & Coffee'], wood='spruce', component='facade')
     b.framed_sign(4, 5, 11, 'west', 'Open 07-19h', 'Egg Tarts', wood='birch', component='facade')
     b.dedication_placard(16, 5, 8, 'west', 'Nov. 13,', '2026', tool='stone_axe')
 
@@ -1102,7 +1102,7 @@ def _elevated_rail_station() -> dict[str, Any]:
 
 def _midrise_apartments() -> dict[str, Any]:
     b = VoxelBuilder('midrise')
-    # Pacific & Redmond Flats (245 Pacific Ave): 5-storey mixed-use at x=4..25, z=6..20, roof y=23, bulkhead y=24..26
+    # Linden Flats (245 Cedar St): 5-storey mixed-use at x=4..25, z=6..20, roof y=23, bulkhead y=24..26
     floor_ys = [2, 6, 11, 15, 19]
     roof_y = 23
     b.box(4, 2, 6, 25, 2, 20, 'polished_andesite', component='floor')
@@ -1222,9 +1222,9 @@ def _midrise_apartments() -> dict[str, Any]:
     b.head(11, roof_y + 1, 12, 'ac_unit', facing='north', component='roof')
 
     # Signage: exterior address, cafe fascia, residential plaque, interior Built + Max Occupancy
-    b.address_plaque(17, 4, 5, 'north', 245, 'Pacific Ave', '太平洋大道')
+    b.address_plaque(17, 4, 5, 'north', 245, 'Cedar St', '雪松街')
     b.sign(8, 6, 5, 'north', ['Kettle & Fern', '壺蕨咖啡館', '-------------', 'Espresso Bar'], wood='spruce', component='facade')
-    b.framed_sign(20, 4, 5, 'north', 'Redmond Flats', 'Residences', wood='birch', component='facade')
+    b.framed_sign(20, 4, 5, 'north', 'Linden Flats', 'Residences', wood='birch', component='facade')
     b.dedication_placard(16, 5, 10, 'east', 'Nov. 14,', '2026', tool='stone_axe')
     b.occupancy_plaque(16, 5, 13, 'east', 96)
     return b.result()
@@ -1232,7 +1232,7 @@ def _midrise_apartments() -> dict[str, Any]:
 
 def _civic_office_tower() -> dict[str, Any]:
     b = VoxelBuilder('tower')
-    # Pacific Finance Centre (100 Exchange Pl): podium x=4..25,z=6..22 (y=2..10), shaft x=7..22,z=8..20 (y=10..30), crown y=31..36
+    # Exchange Tower (100 Exchange Pl): podium x=4..25,z=6..22 (y=2..10), shaft x=7..22,z=8..20 (y=10..30), crown y=31..36
     b.box(4, 2, 6, 25, 2, 22, 'polished_andesite', component='floor')
     b.box(11, 2, 5, 18, 2, 5, 'polished_andesite', component='apron')
     b.box(4, 3, 6, 25, 10, 22, 'smooth_quartz', component='wall')
@@ -1357,7 +1357,7 @@ def _civic_office_tower() -> dict[str, Any]:
 
     # Signage: exterior address, tower nameplate, directory hours, interior Built placard + frame & Max Occupancy
     b.address_plaque(11, 4, 5, 'north', 100, 'Exchange Pl', '交易廣場')
-    b.sign(14, 6, 5, 'north', ['Pacific Centre', '太平洋金融中心', '--------------', 'Civic & Trade'], wood='birch', component='facade')
+    b.sign(14, 6, 5, 'north', ['Exchange Tower', '交易廣場', '--------------', 'Civic & Trade'], wood='birch', component='facade')
     b.framed_sign(18, 4, 5, 'north', 'Lobby Mon-Fri', '07:00 - 20:00', wood='oak', component='facade')
     b.dedication_placard(5, 5, 9, 'east', 'Nov. 14,', '2026', tool='stone_axe')
     b.occupancy_plaque(5, 5, 13, 'east', 240)

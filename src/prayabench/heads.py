@@ -1,7 +1,7 @@
 """Standalone MIT semantic custom-head catalogue and multi-face 8x8 pixel-art definitions.
 
 Provides a semantic prop vocabulary across 15 categories without bundling
-any Mojang skin URLs, scraped third-party textures, or runtime imports from praya.ai.
+any Mojang skin URLs, scraped third-party textures, or runtime imports from any external project.
 """
 from __future__ import annotations
 
