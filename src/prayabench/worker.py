@@ -1,7 +1,36 @@
 """Executed only inside the restricted container. This is not a host sandbox."""
 import ast
 import json
+import re
 import sys
+
+_ITEM_RE = re.compile(r'^(?:minecraft:)?[a-z0-9_]{1,48}$')
+_DIRECTIONS = {'north', 'south', 'east', 'west', 'up', 'down'}
+_FRAME_KEYS = {'facing', 'item', 'rotation', 'invisible', 'glow', 'fixed'}
+
+
+def _check_frame(frame):
+    if frame is None:
+        return None
+    if not isinstance(frame, dict) or not set(frame).issubset(_FRAME_KEYS):
+        raise ValueError('invalid item_frame payload')
+    facing = frame.get('facing', 'north')
+    item = frame.get('item', '')
+    rotation = frame.get('rotation', 0)
+    if not isinstance(facing, str) or facing not in _DIRECTIONS:
+        raise ValueError('invalid item_frame facing')
+    if not isinstance(item, str) or not _ITEM_RE.fullmatch(item):
+        raise ValueError('invalid item_frame item')
+    if type(rotation) is not int or not 0 <= rotation <= 7:
+        raise ValueError('invalid item_frame rotation')
+    return {
+        'facing': facing,
+        'item': item.split(':', 1)[1] if ':' in item else item,
+        'rotation': rotation,
+        'invisible': bool(frame.get('invisible', False)),
+        'glow': bool(frame.get('glow', False)),
+        'fixed': bool(frame.get('fixed', False)),
+    }
 
 
 def compile_source(
@@ -33,7 +62,7 @@ def compile_source(
     cells = {}
     writes = 0
 
-    def put(x, y, z, state, component=''):
+    def put(x, y, z, state, component='', frame=None):
         nonlocal writes
         writes += 1
         if writes > write_limit:
@@ -44,7 +73,11 @@ def compile_source(
             raise ValueError('state exceeds limit')
         if not isinstance(component, str) or len(component) > 100:
             raise ValueError('component exceeds limit')
-        cells[x, y, z] = [x, y, z, state, None, component, None]
+        fr = _check_frame(frame)
+        row = [x, y, z, state, None, component, None]
+        if fr is not None:
+            row.append(fr)
+        cells[x, y, z] = row
         if len(cells) > cell_limit:
             raise ValueError('cell budget exceeded')
 
@@ -63,10 +96,10 @@ def compile_source(
         put(x, y, z, state, component)
         cells[x, y, z][6] = asset
 
-    def sign(x, y, z, state, lines, component=''):
+    def sign(x, y, z, state, lines, component='', frame=None):
         if not isinstance(lines, list) or len(lines) > 4 or any(not isinstance(s, str) or len(s) > 100 for s in lines):
             raise ValueError('sign text exceeds limit')
-        put(x, y, z, state, component)
+        put(x, y, z, state, component, frame=frame)
         cells[x, y, z][4] = lines
 
     max_x = (len(ground_map) - 1) if ground_map else 23

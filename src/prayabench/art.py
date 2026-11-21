@@ -284,6 +284,18 @@ def assess_art(fixture, data):
             if fixture['transparent']:
                 border = sum(bool(rendered[y*w+x][3]) for y in range(h) for x in range(w) if x in (0,w-1) or y in (0,h-1))
                 check('transparent_edge', 0, border, border == 0)
+                if fixture['task'] == 'map-fascia-wordmark':
+                    # Verify smooth rounded corners on any backing plate (bounding corners of opaque pixels remain transparent)
+                    oxs = [x for y in range(h) for x in range(w) if rendered[y*w+x][3]]
+                    oys = [y for y in range(h) for x in range(w) if rendered[y*w+x][3]]
+                    if oxs and oys:
+                        x0, x1, y0, y1 = min(oxs), max(oxs), min(oys), max(oys)
+                        corner_hits = sum(
+                            bool(rendered[cy*w+cx][3])
+                            for cx in (x0, x0+1, x1-1, x1)
+                            for cy in (y0, y0+1, y1-1, y1)
+                        )
+                        check('rounded_corners', 0, corner_hits, corner_hits == 0)
             for rect, label in fixture['probes']:
                 region = [rendered[i] for i in _regions(w, rect) if rendered[i][3]]
                 occupied = len(region) / ((rect[2]-rect[0])*(rect[3]-rect[1]))

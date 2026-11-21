@@ -31,8 +31,11 @@ TASK_SPECS: dict[str, dict[str, Any]] = {
             'min_edited_cells': 45,
             'reachable_doors': 0,
             'reachable_interior_cells': 6,
+            'paved_street_connection': True,
             'assets': ['ticket_validator', 'trash_bin'],
-            'signs': 1,
+            'min_custom_heads': 3,
+            'signs': 2,
+            'operational_signage': 1,
             'seating': 2,
             'lights': 2,
             'flora': 2,
@@ -45,18 +48,21 @@ TASK_SPECS: dict[str, dict[str, Any]] = {
         'source_limit': 14000,
         'terrain': 'Flat grass plot at y=2 behind north pavement z=3..4.',
         'brief': (
-            'Build a small welcoming park at z>=5. Include a continuous path from the pavement into the park, '
+            'Build a small welcoming park at z>=5. Include a continuous paved path from the pavement into the park, '
             'two benches, two different believable trees including a conifer and a broadleaf tree, planted beds, '
-            'a mailbox_orange on a slender post, and one informative sign mounted on a proper support. Preserve '
-            'a clear walking route and avoid isolated floating fixtures.'
+            'a mailbox_orange on a slender post, trash/recycling props, and a BCParks-style park plaque mounted '
+            'on a proper masonry post. Preserve a clear walking route and avoid isolated floating fixtures.'
         ),
         'extra': '',
         'requirements': {
             'min_edited_cells': 60,
             'reachable_doors': 0,
             'reachable_interior_cells': 12,
+            'paved_street_connection': True,
             'assets': ['mailbox_orange'],
+            'min_custom_heads': 2,
             'signs': 1,
+            'operational_signage': 1,
             'conifer_leaves': 8,
             'broadleaf_leaves': 8,
             'seating': 2,
@@ -71,17 +77,24 @@ TASK_SPECS: dict[str, dict[str, Any]] = {
         'terrain': 'Lateral east-rising slope: ground(x, z) = 2 + x // 8.',
         'brief': (
             'Build an attractive one-storey coffee shop around x=2..14,z=7..17, facing north. '
-            'Include a level floor, supported plinth, roof, facade depth, recessed glazing, a service counter '
-            'with coffee_maker and pos_terminal props, two customer seats and a table. Connect its entrance to '
-            'the sloped pavement. At x=16..22,z=7..18 add a connected pocket garden, tiered conifer, bench and '
+            'Step or grade the floor to meet the sidewalk cleanly (no tall unstepped drawbridge plinth), '
+            'with a 1-block recessed entrance portal, facade relief on all exposed sides, smoked glazing, '
+            'exterior address plaque and shop/hours signage, an interior Built placard with a visible stone_axe '
+            'item_frame above it, a service bar with coffee_maker, pos_terminal and pastry/cup heads, customer '
+            'seating and lights. At x=16..22,z=7..18 add a connected pocket garden, conifer, bench and '
             'mailbox_orange on a slender post.'
         ),
         'extra': '',
         'requirements': {
-            'min_edited_cells': 120,
+            'min_edited_cells': 140,
             'reachable_doors': 1,
+            'paved_street_connection': True,
             'assets': ['coffee_maker', 'pos_terminal', 'mailbox_orange'],
-            'signs': 1,
+            'min_custom_heads': 6,
+            'signs': 3,
+            'address_plaque': 1,
+            'dedication_placard': True,
+            'operational_signage': 1,
             'conifer_leaves': 8,
             'seating': 2,
         },
@@ -91,23 +104,29 @@ TASK_SPECS: dict[str, dict[str, Any]] = {
         'category': 'adaptive-reuse',
         'bounds': [0, 0, 0, 23, 17, 21],
         'source_limit': 14000,
-        'terrain': 'Flat plot at y=2 with a protected historic shop shell at x=3..15, z=7..17, y=2..8.',
+        'terrain': 'Flat plot at y=2 with a protected historic brick shop shell at x=3..15, z=7..17, y=2..9.',
         'brief': (
-            'Fit out the supplied older shop shell: a service counter with coffee_maker and pos_terminal props, '
-            'two customer seats/table, lights and mounted hours signage. Preserve all protected original shell '
-            'cells including the historic Built 2012 placard. Do not describe this as new construction. Keep the '
-            'door reachable. You may add interior blocks and front/side landscaping outside x=3..15,z=7..17 but '
-            'must not replace protected shell cells.'
+            'Fit out the supplied historic 2012 shop shell into an active espresso & bakery bar: '
+            'espresso counter with coffee_maker, pos_terminal, card_reader and pastry/drink heads (never '
+            'vanilla bookshelf filler), customer booths, slatted/pendant lighting, an interior Renovated '
+            'placard with visible stone_axe item_frame above it, and exterior address + hours signage and '
+            'paved forecourt outside x=3..15,z=7..17. Preserve all protected shell cells including the '
+            'historic Built 2012 placard.'
         ),
         'extra': (
             '\nThe exact existing shell and protected cells are listed in fixture.json; the shell occupies '
-            'x=3..15,z=7..17,y=2..8. Door at [8,3,7], placard at [4,5,8].\n'
+            'x=3..15,z=7..17,y=2..9. Door at [8,3,7], historic placard at [4,5,8].\n'
         ),
         'requirements': {
-            'min_edited_cells': 35,
+            'min_edited_cells': 55,
             'reachable_doors': 1,
+            'paved_street_connection': True,
             'assets': ['coffee_maker', 'pos_terminal'],
-            'signs': 1,
+            'min_custom_heads': 6,
+            'signs': 3,
+            'address_plaque': 1,
+            'renovation_placard': True,
+            'operational_signage': 1,
             'seating': 2,
             'lights': 2,
             'forbid_new_build_claim': True,
@@ -120,16 +139,22 @@ TASK_SPECS: dict[str, dict[str, Any]] = {
         'source_limit': 14000,
         'terrain': 'Flat grass plot at y=2 behind north pavement z=3..4.',
         'brief': (
-            'Build a complete two-storey compact house around x=3..16,z=7..18. Include a living room, kitchen, '
-            'bedroom with a paired two-cell bed, bathroom, connected interior stairs with headroom to a reachable '
-            'upper floor, a roof, varied elevations, a reachable front entrance and a small planted front garden. '
-            'Furnish rooms so a player can use the circulation space.'
+            'Build a complete two-storey detached house around x=3..17,z=7..18. Include a recessed porch '
+            'entrance, exterior eye-height address plaque, interior Built placard + stone_axe item_frame, '
+            'two-storey bay or dressed window sills/shutters on all four elevations, living room, kitchen '
+            'with appliance heads, upstairs bedroom with paired bed, washroom with cauldron fixtures, '
+            'connected interior stairs with headroom, pitched roof with low chimney, and planted front garden.'
         ),
         'extra': '',
         'requirements': {
-            'min_edited_cells': 180,
+            'min_edited_cells': 200,
             'reachable_doors': 1,
+            'paved_street_connection': True,
             'upper_storey_min_y': 6,
+            'min_custom_heads': 4,
+            'signs': 2,
+            'address_plaque': 1,
+            'dedication_placard': True,
             'beds': 1,
             'flora': 3,
         },
@@ -141,17 +166,24 @@ TASK_SPECS: dict[str, dict[str, Any]] = {
         'source_limit': 14000,
         'terrain': 'Flat municipal utility parcel at y=2 behind north street z=0..4.',
         'brief': (
-            'Build a municipal electrical distribution substation at x=2..19,z=6..17. Include a masonry/concrete '
-            'switchgear control room with a reachable service door, computer_monitor desk and exterior identification/hazard '
-            'signage, an enclosed outdoor transformer yard with iron_bars or masonry screening, gated access, '
-            'transformer/insulator assemblies, yard lighting, planted street frontage buffer and a fire_hydrant near the kerb.'
+            'Build an urban electrical distribution substation at x=2..19,z=6..17. Include an articulated '
+            'masonry/concrete GIS & SCADA control house with a recessed service door, exterior address and '
+            'hazard/operator signage, interior Built placard + stone_axe item_frame, control desk with '
+            'computer_monitor and switchgear equipment heads, rooftop fan/ventilation detail, an enclosed '
+            'transformer court with radiator fins and insulator bushings, planted buffer and kerbside fire_hydrant.'
         ),
         'extra': '',
         'requirements': {
-            'min_edited_cells': 110,
+            'min_edited_cells': 140,
             'reachable_doors': 1,
+            'paved_street_connection': True,
+            'flat_roof_equipment': True,
             'assets': ['computer_monitor', 'fire_hydrant'],
-            'signs': 1,
+            'min_custom_heads': 4,
+            'signs': 3,
+            'address_plaque': 1,
+            'dedication_placard': True,
+            'operational_signage': 1,
             'lights': 2,
             'flora': 2,
         },
@@ -168,19 +200,25 @@ TASK_SPECS: dict[str, dict[str, Any]] = {
             'Span the protected east-west canal (z=7..10) with a continuous walkable footbridge from the north '
             'bank (z=5..6) to the south bank (z=11..21), keeping bridge structure at y>=4 over the water channel '
             'with continuous side railings/parapets. On the south bank around x=5..17,z=13..20, build a roofed '
-            'waterside tea kiosk with a reachable entrance door, service counter with coffee_maker and pos_terminal '
-            'props, waterside seating, lanterns and mounted signage.'
+            'waterside tea kiosk with a recessed entrance, articulated facades on all four sides, exterior '
+            'address and menu signage, interior Built placard + stone_axe item_frame, service counter with '
+            'coffee_maker, pos_terminal and tea/pastry heads, waterside seating and lanterns.'
         ),
         'extra': (
             '\nProtected zones: north road/pavement z=0..4 (all y) and the canal channel z=7..10 for y=0..3 '
             '(stone bed/walls and water at y=1..2). Do not fill the canal; span above y>=4. Both banks sit at y=3.\n'
         ),
         'requirements': {
-            'min_edited_cells': 130,
+            'min_edited_cells': 160,
             'reachable_doors': 1,
+            'paved_street_connection': True,
             'south_bank_door_min_z': 12,
             'assets': ['coffee_maker', 'pos_terminal'],
-            'signs': 1,
+            'min_custom_heads': 5,
+            'signs': 3,
+            'address_plaque': 1,
+            'dedication_placard': True,
+            'operational_signage': 1,
             'seating': 2,
             'lights': 2,
         },
@@ -193,22 +231,29 @@ TASK_SPECS: dict[str, dict[str, Any]] = {
         'terrain': 'Dual-frontage flat corner lot at y=2; north street z=0..4 and west side lane x=0..3 are protected.',
         'brief': (
             'Build a two-storey mixed-use corner shophouse at x=4..17,z=5..17 addressing both the north main '
-            'street and the west side lane. Ground floor: corner bakery/cafe with display glazing on both north '
-            'and west street fronts, street entrance, counter with coffee_maker and pos_terminal props, and '
-            'seating. Upper floor: reachable studio apartment with a paired two-cell bed, connected stairs with '
-            'headroom, windows and roof. Add a rear/east court with mailbox_orange on a slender post.'
+            'street and the west side lane. Ground floor: corner bakery/cafe with smoked display glazing on both '
+            'north and west street fronts, recessed street entrance, canopy/oriel facade relief on all exposed '
+            'sides, address plaque, shopfront signage, interior Built placard + stone_axe item_frame, counter '
+            'with coffee_maker, pos_terminal and bakery heads, and seating. Upper floor: reachable studio flat '
+            'with paired bed, kitchen/bath fixtures, windows and solar/AC roof. Add an east court with mailbox_orange.'
         ),
         'extra': (
             '\nProtected street rights-of-way: z=0..4 (north road and pavement) AND x=0..3 (west side lane and '
             'sidewalk) across all y. Build only at x>=4 and z>=5.\n'
         ),
         'requirements': {
-            'min_edited_cells': 220,
+            'min_edited_cells': 250,
             'reachable_doors': 1,
+            'paved_street_connection': True,
+            'flat_roof_equipment': True,
             'upper_storey_min_y': 6,
             'dual_frontage_glazing': True,
             'assets': ['coffee_maker', 'pos_terminal', 'mailbox_orange'],
-            'signs': 1,
+            'min_custom_heads': 7,
+            'signs': 3,
+            'address_plaque': 1,
+            'dedication_placard': True,
+            'operational_signage': 1,
             'beds': 1,
         },
     },
@@ -221,10 +266,10 @@ TASK_SPECS: dict[str, dict[str, Any]] = {
         'brief': (
             'Infill the narrow urban gap x=5..16 between two protected neighbour party-wall buildings with a '
             'two-storey bookshop and upstairs reading loft. Do not modify either neighbour wall or place blind '
-            'windows directly against opaque party walls; bring daylight from a recessed north street facade '
-            'and a planted rear courtyard at z=17..21. Include ground-floor bookshelf stacks, checkout counter '
-            'with pos_terminal, mounted shop signage, and stairs with headroom to a reachable upper reading room '
-            'with seating and lights.'
+            'windows directly against opaque party walls; bring daylight and real architectural depth to both '
+            'the recessed north street facade and the rear courtyard facade. Include ground-floor bookshelf stacks, '
+            'checkout counter with pos_terminal and book/lamp heads, exterior address and shop signage, interior '
+            'Built placard + stone_axe item_frame, stairs to the upper reading room, seating and rear garden.'
         ),
         'extra': (
             '\nProtected structures: north street z=0..4 (all y), west neighbour building x=0..4,z=5..17,y=0..10, '
@@ -232,12 +277,17 @@ TASK_SPECS: dict[str, dict[str, Any]] = {
             'rear yard behind z>=18).\n'
         ),
         'requirements': {
-            'min_edited_cells': 180,
+            'min_edited_cells': 200,
             'reachable_doors': 1,
+            'paved_street_connection': True,
             'upper_storey_min_y': 6,
             'assets': ['pos_terminal'],
+            'min_custom_heads': 5,
             'bookshelves': 4,
-            'signs': 1,
+            'signs': 3,
+            'address_plaque': 1,
+            'dedication_placard': True,
+            'operational_signage': 1,
             'seating': 2,
             'flora': 2,
             'lights': 2,
@@ -250,20 +300,26 @@ TASK_SPECS: dict[str, dict[str, Any]] = {
         'source_limit': 14000,
         'terrain': '2D hillside rising south and east from y=2 at z<=5 up to y=8..9 at z>=16.',
         'brief': (
-            'Build a stepped hillside route from the north pavement (z=3..4, y=2) up the steep slope to a roofed '
-            'summit lookout/tea pavilion on the upper crest (z=15..20, y>=8). Retain cut/fill terrace edges with '
-            'masonry walls rather than floating slabs, include a mid-slope rest landing with a bench and lanterns, '
-            'mounted wayfinding/pavilion signage, conifers, and a reachable pavilion entrance door on the summit (y>=8).'
+            'Build a stepped masonry-retained hillside route from the north pavement (z=3..4, y=2) up the steep '
+            'slope to a roofed summit lookout/tea pavilion on the upper crest (z=15..20, y>=8). Include a '
+            'mid-slope rest landing with bench and lanterns, conifers, and a summit pavilion with recessed '
+            'entry, overhanging eaves and window relief on all four sides, exterior address/wayfinding signage, '
+            'interior Built placard + stone_axe item_frame, tea counter with custom prop heads, and summit door (y>=8).'
         ),
         'extra': (
             '\nTerrain varies in both x and z: call ground(x, z) to query exact surface elevation at each column '
             '(rises from y=2 at z<=5 to y=8 at x<15,z>=16 and y=9 at x>=15,z>=16).\n'
         ),
         'requirements': {
-            'min_edited_cells': 140,
+            'min_edited_cells': 160,
             'reachable_doors': 1,
+            'paved_street_connection': True,
             'summit_door_min_y': 8,
-            'signs': 1,
+            'min_custom_heads': 3,
+            'signs': 3,
+            'address_plaque': 1,
+            'dedication_placard': True,
+            'operational_signage': 1,
             'seating': 1,
             'lights': 2,
             'conifer_leaves': 6,
@@ -277,18 +333,22 @@ TASK_SPECS: dict[str, dict[str, Any]] = {
         'terrain': 'Wide urban residential lot (30x22x24) at y=2 behind north street z=0..4.',
         'brief': (
             'Build a cohesive terrace of three attached two-storey urban rowhouses across x=2..27,z=6..18, '
-            'separated by interior party walls. Give each of the three homes its own distinct reachable street '
-            'stoop/front entrance door, subtle bay or material variation, interior stairs with headroom to '
-            'upstairs bedrooms (at least three paired two-cell beds across the row), illuminated rooms, and '
-            'small planted rear yards at z=19..22.'
+            'separated by interior party walls. Give each home its own recessed street porch/door, eye-height '
+            'address plaque, distinct bay/oriel or material palette, articulated end-gable/flank windows with '
+            'sills/shutters on x=2 and x=27, interior Built placard + stone_axe item_frame, furnished kitchen '
+            'with appliance heads, stairs to upstairs bedrooms (three paired beds), and planted rear yards.'
         ),
         'extra': '',
         'requirements': {
-            'min_edited_cells': 420,
+            'min_edited_cells': 480,
             'reachable_doors': 3,
+            'paved_street_connection': True,
             'upper_storey_min_y': 6,
+            'min_custom_heads': 6,
             'beds': 3,
-            'signs': 1,
+            'signs': 6,
+            'address_plaque': 3,
+            'dedication_placard': True,
             'lights': 6,
             'flora': 3,
         },
@@ -300,19 +360,26 @@ TASK_SPECS: dict[str, dict[str, Any]] = {
         'source_limit': 16000,
         'terrain': 'Flat institutional corner-adjacent lot (28x20x24) at y=2 behind north street z=0..4.',
         'brief': (
-            'Build a two-storey neighbourhood urgent-care clinic and pharmacy at x=2..25,z=6..19. Ground floor: '
-            'step-free or gently ramped main entrance, reception desk with computer_monitor, waiting seating, '
-            'dispensary counter with pos_terminal, wall-mounted or accessible defibrillator prop, and clear '
-            'wayfinding signage. Upper floor: consultation rooms reached by wide interior stairs with headroom. '
-            'Ensure every enclosed room is well lit.'
+            'Build a two-storey neighbourhood urgent-care clinic and pharmacy at x=2..25,z=6..19 with mullion '
+            'and window relief across all four elevations (never blank flank walls). Ground floor: recessed '
+            'step-free entrance, exterior address and clinic signage, interior Built placard + stone_axe '
+            'item_frame, reception desk (computer_monitor), waiting seating, pharmacy counter (pos_terminal, '
+            'medicine_pillbottle), accessible defibrillator, and interior emergency_exit_light_caged. Upper '
+            'floor: consultation rooms reached by wide stairs, topped by rooftop fan/AC equipment.'
         ),
         'extra': '',
         'requirements': {
-            'min_edited_cells': 320,
+            'min_edited_cells': 380,
             'reachable_doors': 1,
+            'paved_street_connection': True,
+            'flat_roof_equipment': True,
             'upper_storey_min_y': 6,
             'assets': ['computer_monitor', 'pos_terminal', 'defibrillator'],
-            'signs': 1,
+            'min_custom_heads': 8,
+            'signs': 4,
+            'address_plaque': 1,
+            'dedication_placard': True,
+            'operational_signage': 2,
             'seating': 3,
             'lights': 6,
         },
@@ -326,21 +393,29 @@ TASK_SPECS: dict[str, dict[str, Any]] = {
         'source_limit': 20000,
         'terrain': 'Large corner commercial parcel (32x20x28) at y=2; north street z=0..4 and west service lane x=0..3 protected.',
         'brief': (
-            'Build a complete neighbourhood grocery supermarket at x=5..29,z=6..24 with customer frontage on '
-            'the north street and a service/loading entrance off the west lane. Include at least two checkout '
-            'counters with pos_terminal props, parallel stocked retail gondola aisles, rear/side refrigerated '
-            'display walls, thorough ceiling lighting across the deep floorplate so no interior aisle is dark, '
-            'mounted fascia/hours signage, rooftop HVAC details and kerbside parking_meter on the frontage.'
+            'Build a flagship neighbourhood supermarket (flagship standard) at x=5..29,z=6..24 '
+            'with recessed north customer portal + sea_lantern threshold uplights, west lane service entrance, '
+            'architectural louver/fin relief on all four elevations, slatted ceiling with end_rod lights, at '
+            'least two conveyor POS lanes (pos_terminal, card_reader), stair-and-trapdoor gondola aisles stocked '
+            'with produce/food custom heads (never vanilla bookshelf filler), cold wall, exterior address and '
+            'hours signage, interior Built placard + stone_axe item_frame + Max Occupancy sign, 2x2 quartz+rail '
+            'rooftop fans, and kerbside parking_meter.'
         ),
         'extra': (
             '\nProtected street rights-of-way: north street z=0..4 and west service lane x=0..3 across all y. '
             'Build only at x>=4 and z>=5.\n'
         ),
         'requirements': {
-            'min_edited_cells': 500,
+            'min_edited_cells': 600,
             'reachable_doors': 2,
+            'paved_street_connection': True,
+            'flat_roof_equipment': True,
             'assets': ['pos_terminal', 'parking_meter'],
-            'signs': 2,
+            'min_custom_heads': 18,
+            'signs': 5,
+            'address_plaque': 1,
+            'dedication_placard': True,
+            'operational_signage': 3,
             'lights': 10,
         },
     },
@@ -352,11 +427,11 @@ TASK_SPECS: dict[str, dict[str, Any]] = {
         'terrain': 'Urban site (34x24x26) at y=2 crossed by a protected elevated stone twin-track rail viaduct at z=15..18 (tracks at y=11).',
         'brief': (
             'Build a commuter elevated rail station integrating the protected stone viaduct (z=15..18, track deck '
-            'y=10, rails y=11) without modifying any protected viaduct or track blocks. Build a street-level '
-            'concourse/ticket hall at z=5..13 with reachable entrances, ticket_validator fare gates and departure '
-            'signage, connected by covered stairs with full headroom up to elevated boarding platform(s) at y=11 '
-            'alongside the tracks (z=11..14 and/or z=19..22), complete with platform canopies, yellow safety edge '
-            'striping, benches and lighting.'
+            'y=10, rails y=11) without modifying protected viaduct/track blocks. Build an articulated street-level '
+            'concourse at z=5..13 with recessed entrances, exterior address and station signage, interior Built '
+            'placard + stone_axe item_frame, ticket_validator fare gates, station clock/monitors and bins, '
+            'connected by covered stairs with full headroom to an elevated platform at y=11 alongside z=14 with '
+            'canopy, yellow tactile safety edge, benches, wayfinding signs and lighting.'
         ),
         'extra': (
             '\nProtected zones: north road/pavement z=0..4 (all y) and the elevated rail viaduct structure '
@@ -364,11 +439,16 @@ TASK_SPECS: dict[str, dict[str, Any]] = {
             'for y=2..9). Build platforms flush alongside z=14 or z=19 at y=10..11.\n'
         ),
         'requirements': {
-            'min_edited_cells': 480,
+            'min_edited_cells': 520,
             'reachable_doors': 1,
+            'paved_street_connection': True,
             'reachable_floor_tiers': [11],
             'assets': ['ticket_validator'],
-            'signs': 2,
+            'min_custom_heads': 6,
+            'signs': 4,
+            'address_plaque': 1,
+            'dedication_placard': True,
+            'operational_signage': 2,
             'seating': 2,
             'lights': 8,
         },
@@ -380,22 +460,29 @@ TASK_SPECS: dict[str, dict[str, Any]] = {
         'source_limit': 22000,
         'terrain': 'Urban block parcel (30x30x26) at y=2 behind protected north street z=0..4.',
         'brief': (
-            'Build a five-storey mixed-use residential midrise (rising to at least y=23) at x=3..26,z=6..21. '
-            'Include an active ground-floor cafe/shop (coffee_maker, pos_terminal) AND a separate street-reachable '
-            'residential lobby entrance, a continuous interior stair core with headroom reaching every upper '
-            'storey (tiers at y>=6, y>=12 and y>=18), recessed stained-glass windows, continuous guarded balconies, '
-            'at least three furnished apartment beds across upper floors, illuminated corridors/rooms, and a '
-            'finished rooftop terrace or mechanical bulkhead.'
+            'Build a five-storey mixed-use residential midrise (rising to y>=23) at x=3..26,z=6..21 with real '
+            'architectural depth and fenestration across all four elevations (balconies, planted ledges, recessed '
+            'glazing — never blank brick flank walls). Include a ground-floor cafe (coffee_maker, pos_terminal, '
+            'pastry heads, no ground-floor bookshelf filler) AND a separate recessed residential lobby entrance, '
+            'exterior address and cafe signage, interior Built placard + stone_axe item_frame, continuous stair '
+            'core reaching upper tiers (y>=6, 12, 18), furnished apartments (>=3 beds + kitchen heads), and '
+            'rooftop mechanical/solar bulkhead.'
         ),
         'extra': '',
         'requirements': {
-            'min_edited_cells': 750,
+            'min_edited_cells': 850,
             'min_peak_height': 23,
             'reachable_doors': 2,
+            'paved_street_connection': True,
+            'flat_roof_equipment': True,
             'reachable_floor_tiers': [6, 12, 18],
             'assets': ['coffee_maker', 'pos_terminal'],
+            'min_custom_heads': 8,
             'beds': 3,
-            'signs': 1,
+            'signs': 4,
+            'address_plaque': 1,
+            'dedication_placard': True,
+            'operational_signage': 2,
             'lights': 10,
         },
     },
@@ -406,21 +493,29 @@ TASK_SPECS: dict[str, dict[str, Any]] = {
         'source_limit': 22000,
         'terrain': 'Downtown tower plot (30x40x28) at y=2 behind protected north avenue z=0..4.',
         'brief': (
-            'Build an eight-storey civic and office tower rising to y>=32 at x=3..26,z=6..23. Express a distinct '
-            'two-storey public podium/lobby with reception desk (computer_monitor) and signage, a stepped tower '
-            'shaft above with real mullion/spandrel facade depth across all four elevations, a continuous stair '
-            'core reaching upper office/sky-lobby floors (tiers at y>=6, y>=14 and y>=22), lit interior floorplates, '
-            'a rooftop mechanical crown, and credible rooftop redstone_torch aircraft warning light(s) at y>=30.'
+            'Build an eight-storey civic and office tower rising to y>=32 at x=3..26,z=6..23. Express an '
+            'articulated two-storey public podium on all four sides with recessed main portal, exterior address '
+            'and tower directory signage, interior Built placard + stone_axe item_frame, reception desk '
+            '(computer_monitor, card_reader, security_camera, emergency_exit_light_caged), a stepped curtain-wall '
+            'shaft with real mullion/spandrel relief on all four faces, continuous stair core reaching tiers '
+            'y>=6, 14 and 22 with furnished office floors, louvered mechanical crown + 2x2 fan units, and '
+            'credible rooftop redstone_torch aircraft warning lights at y>=30.'
         ),
         'extra': '',
         'requirements': {
-            'min_edited_cells': 950,
+            'min_edited_cells': 1050,
             'min_peak_height': 32,
             'reachable_doors': 1,
+            'paved_street_connection': True,
+            'flat_roof_equipment': True,
             'reachable_floor_tiers': [6, 14, 22],
             'aircraft_warning_light_min_y': 30,
             'assets': ['computer_monitor'],
-            'signs': 1,
+            'min_custom_heads': 10,
+            'signs': 4,
+            'address_plaque': 1,
+            'dedication_placard': True,
+            'operational_signage': 2,
             'lights': 12,
         },
     },
@@ -573,30 +668,38 @@ ground(x, z=5) returns the initial fixture surface block y at (x, z); ground(x)
 also works on 1D/flat plots, while 2D and terraforming tasks require ground(x, z).
 Protected street, rail, neighbour and reference-terrain cells listed in fixture.json
 are immutable.
-Player height is two blocks. Supply paired lower/upper halves for doors with
+Player height is 1.8 blocks. Supply paired lower/upper halves for doors with
 matching facing, and paired foot/head cells for beds.
 Use supported block names from palette.txt. Standard Minecraft state syntax.
 
-put(x,y,z,state,component=''): one block.
+put(x,y,z,state,component='',frame=None): one block (optional visible item_frame
+dict {{"facing":"south","item":"stone_axe"}} on cell above Built/Renovated placard).
 box(x0,y0,z0,x1,y1,z1,state,component=''): inclusive cuboid.
 head(x,y,z,asset,state='player_head[rotation=0]',component=''): semantic prop;
-assets: {asset_list}. No external skin textures.
-sign(x,y,z,state,lines,component=''): at most four short text lines.
+assets: {asset_list}. No external skin textures; exit_sign is banned (use
+emergency_exit_light_caged indoors).
+sign(x,y,z,state,lines,component=''): at most four short text lines (<=90px wall,
+<=60px hanging).
 Later writes replace earlier writes. Air explicitly removes a writable cell.
 
-Construction & terraforming rules: all fixtures have plausible supports. Place wall
-signs/heads on connected solid walls, never panes or isolated floating filler blocks.
-Ceiling hanging signs attach overhead; wall hanging signs attach to side supports.
-Props sit flush on counters/tables/floors; mailbox_orange and parking_meter use
-slender bars/chains/panes/fences, not solid-block plinths. Gravity blocks (sand,
-gravel) need non-passable support underneath. Plant flora on soil, grass or moss.
-Door jambs in glazed walls are full blocks. Light enclosed rooms thoroughly so
-interior spaces are not dark. On highrise towers (y>=30), mount rooftop aircraft
-warning redstone torches credibly; omit them on low-rise buildings. On terraforming
-and chunk-error tasks, clear floating debris, fill terrain solidly from below
-without hollow air cavities under turf, match adjacent seam elevations smoothly,
-and top-dress raw stone/dirt scars. Preserve historic construction dates during
-renovations and never claim an older shell is newly built.
+Acceptance rules:
+- Connect street entrances to the protected pavement with a continuous paved route.
+  Recess exterior building doors at least 1 block inside a framed portal/porch.
+- Flank glazed doors with full stained glass or vertical stripped wood jambs, never
+  glass panes or iron bars.
+- Give every exposed building elevation real non-planar relief (sills, shutters,
+  bays, balconies, louvers, canopies) and fenestration (no blank flank walls).
+- Mount an eye-height exterior address plaque (["| 12 |", "---", "Street", ""]) near
+  the entrance, and an interior Built (or Renovated) placard at floor_y + 2+ topped
+  at y + 1 by a visible stone_axe item_frame. Never put code/occupancy or Built
+  placards on exterior walls, and never stand non-traffic signs in the ground.
+- Never use vanilla bookshelf filler in shops/clinics/offices; furnish interiors
+  richly with semantic custom heads.
+- Mailbox and parking_meter heads stand on slender iron_bars, chains, glass_pane or
+  fences, never full-block plinths.
+- Detail flat roofs with 2x2 white/quartz + rail exhaust fans, daylight_detector
+  solar arrays, or ac_unit/wall_vent props (never featureless solid cubes, and omit
+  redstone_torch masts below y=30).
 '''
 
 
@@ -629,7 +732,6 @@ def ground_at(task: str, x: int, z: int = 5) -> int:
             return 7
         if zc >= 16:
             return 3
-        # Jagged eroded coastal bluff dropping irregularly from y=7 to y=2
         raw = 7 - (zc - 4) // 2 - ((xc + zc) % 2 if 7 <= zc <= 13 else 0)
         return max(2, min(7, raw))
     if task == 'quarry-reclamation':
@@ -678,8 +780,19 @@ def fixture(task: str, facing: str | None = None) -> dict[str, Any]:
     cells: dict[tuple[int, int, int], list[Any]] = {}
     protected: set[tuple[int, int, int]] = set()
 
-    def put(x: int, y: int, z: int, s: str, lines: list[str] | None = None) -> None:
-        cells[x, y, z] = [x, y, z, s, lines, 'fixture', None]
+    def put(
+        x: int,
+        y: int,
+        z: int,
+        s: str,
+        lines: list[str] | None = None,
+        asset: str | None = None,
+        frame: dict[str, Any] | None = None,
+    ) -> None:
+        row: list[Any] = [x, y, z, s, lines, 'fixture', asset]
+        if frame is not None:
+            row.append(frame)
+        cells[x, y, z] = row
 
     has_west_lane = task in ('corner-shophouse', 'grocery-supermarket')
 
@@ -709,7 +822,6 @@ def fixture(task: str, facing: str | None = None) -> dict[str, Any]:
                         protected.add((x, y, z))
                 else:
                     protected.add((x, 0, z))
-        # Stranded floating chunk-error tree crown inside writable scar (no trunk)
         for x in range(13, 16):
             for z in range(14, 17):
                 put(x, 12, z, 'oak_leaves[persistent=true]')
@@ -797,7 +909,6 @@ def fixture(task: str, facing: str | None = None) -> dict[str, Any]:
                     protected.add((x, 0, z))
 
     else:
-        # Standard architectural / urban / canal / hillside site generation
         for x in range(w):
             for z in range(d):
                 top = ground_at(task, x, z)
@@ -830,14 +941,30 @@ def fixture(task: str, facing: str | None = None) -> dict[str, Any]:
     if task == 'shop-renovation':
         for x in range(3, 16):
             for z in range(7, 18):
-                put(x, 2, z, 'stone_bricks')
-                put(x, 8, z, 'stone_bricks')
+                put(x, 2, z, 'spruce_planks' if (3 < x < 15 and 7 < z < 17) else 'stone_bricks')
+                put(x, 8, z, 'smooth_stone')
                 if x in (3, 15) or z in (7, 17):
                     for y in range(3, 8):
-                        put(x, y, z, 'white_concrete')
+                        if y == 3:
+                            mat = 'stone_bricks'
+                        elif y == 7:
+                            mat = 'smooth_quartz'
+                        elif x in (3, 15) and z in (7, 17):
+                            mat = 'stone_bricks'
+                        elif z == 7 and y in (4, 5) and x in (5, 6, 11, 12, 13):
+                            mat = 'gray_stained_glass'
+                        elif x in (3, 15) and y in (4, 5) and z in (10, 11, 14):
+                            mat = 'gray_stained_glass'
+                        elif z == 17 and y in (4, 5) and x in (6, 7, 11, 12):
+                            mat = 'gray_stained_glass'
+                        else:
+                            mat = 'bricks'
+                        put(x, y, z, mat)
+                    put(x, 9, z, 'stone_brick_slab[type=bottom]')
         for y in (3, 4):
-            put(8, y, 7, f'oak_door[facing=north,half={"lower" if y == 3 else "upper"}]')
-        put(4, 5, 8, 'oak_wall_sign[facing=south]', ['Built', '-----', '2012', ''])
+            put(8, y, 7, f'dark_oak_door[facing=north,half={"lower" if y == 3 else "upper"}]')
+        put(4, 5, 8, 'oak_wall_sign[facing=south]', ['Built', '-----', 'Jun. 18,', '2012'])
+        put(4, 6, 8, 'air', frame={'facing': 'south', 'item': 'wooden_axe'})
         for pos in list(cells):
             if 3 <= pos[0] <= 15 and 7 <= pos[2] <= 17:
                 protected.add(pos)
@@ -882,10 +1009,10 @@ def fixture(task: str, facing: str | None = None) -> dict[str, Any]:
 
     configure_fixture(task, facing, cells, protected, put)
     if task in EXTRA_VOXEL:
-        ground = [[-1]*d for _ in range(w)]
-        # Surface elevation uses the actual frozen scene, including rail or roof.
-        for (x,y,z), cell in cells.items():
-            ground[x][z] = max(y, ground[x][z])
+        ground = [[-1] * d for _ in range(w)]
+        for (x, y, z), cell in cells.items():
+            if cell[3] != 'air':
+                ground[x][z] = max(y, ground[x][z])
     else:
         ground = ground_grid(task)
 
@@ -961,7 +1088,7 @@ def init_run(path: str | Path, task: str, facing: str | None = None) -> Path:
             metadata['facing'] = f['facing']
         palette = '\n'.join(sorted(PALETTE)) + '\n'
         metadata.update(bounds=bounds, source_limit=source_limit,
-                        scene_cell_limit=min(90000, max(30000, (bounds[3]+1)*(bounds[4]+1)*(bounds[5]+1)*2)))
+                        scene_cell_limit=min(90000, max(30000, (bounds[3] + 1) * (bounds[4] + 1) * (bounds[5] + 1) * 2)))
     else:
         prompt = art_prompt(f)
         palette = art_palette(track)

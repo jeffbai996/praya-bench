@@ -4,14 +4,10 @@ from pathlib import Path
 import re
 from typing import Any
 
+from .heads import ASSETS, BANNED_HEADS, HEAD_ALIASES, POST_MOUNTED_ASSETS, resolve_head_name
+
 MAX_BYTES = 12_000_000
 MAX_CELLS = 90_000
-ASSETS = (
-    'coffee_maker', 'pos_terminal', 'mailbox_orange',
-    'ticket_validator', 'computer_monitor', 'fire_hydrant',
-    'parking_meter', 'trash_bin', 'defibrillator',
-)
-POST_MOUNTED_ASSETS = frozenset({'mailbox_orange', 'parking_meter'})
 WOODS = ('oak', 'spruce', 'birch', 'dark_oak', 'acacia', 'jungle', 'cherry', 'mangrove')
 COLORS = (
     'white', 'light_gray', 'gray', 'black', 'red', 'orange', 'yellow', 'green',
@@ -27,10 +23,13 @@ GROUND_FLORA = TALL_FLORA | frozenset({
 })
 GRAVITY_BLOCKS = frozenset({'sand', 'red_sand', 'gravel'})
 RAIL_BLOCKS = frozenset({'rail', 'powered_rail', 'detector_rail', 'activator_rail'})
+_ITEM_RE = re.compile(r'^(?:minecraft:)?[a-z0-9_]{1,48}$')
+_FRAME_KEYS = frozenset({'facing', 'item', 'rotation', 'invisible', 'glow', 'fixed'})
 
 PALETTE = set(
     'air stone cobblestone mossy_cobblestone coal_ore iron_ore copper_ore '
     'dirt rooted_dirt clay mud packed_mud grass_block podzol coarse_dirt gravel sand red_sand '
+    'sandstone smooth_sandstone red_sandstone smooth_red_sandstone '
     'calcite terracotta bricks mud_bricks brick_wall stone_bricks mossy_stone_bricks '
     'chiseled_stone_bricks cracked_stone_bricks smooth_stone smooth_quartz quartz_block '
     'quartz_bricks quartz_pillar prismarine prismarine_bricks dark_prismarine '
@@ -42,13 +41,13 @@ PALETTE = set(
     'iron_block iron_bars iron_chain chain lightning_rod glass tinted_glass glass_pane '
     'sea_lantern shroomlight ochre_froglight verdant_froglight pearlescent_froglight '
     'lantern soul_lantern torch wall_torch end_rod redstone_torch redstone_wall_torch '
-    'redstone_lamp glowstone barrel bookshelf lectern furnace blast_furnace smoker '
+    'redstone_lamp glowstone barrel bookshelf chiseled_bookshelf lectern furnace blast_furnace smoker '
     'crafting_table cartography_table smithing_table loom stonecutter grindstone anvil '
     'bell note_block jukebox chest composter cauldron water_cauldron hopper ladder '
     'scaffolding campfire soul_campfire daylight_detector hay_block bone_block '
     'rail powered_rail detector_rail activator_rail '
     'heavy_weighted_pressure_plate light_weighted_pressure_plate polished_blackstone_pressure_plate '
-    'water lily_pad vine glow_lichen '
+    'water lily_pad vine glow_lichen tripwire_hook '
     'flower_pot potted_fern potted_azalea_bush potted_flowering_azalea_bush '
     'potted_poppy potted_dandelion potted_allium potted_azure_bluet potted_cornflower '
     'potted_lily_of_the_valley potted_oxeye_daisy potted_oak_sapling potted_spruce_sapling '
@@ -130,6 +129,34 @@ def state_parts(state: str) -> tuple[str, dict[str, str]]:
     return match[1], props
 
 
+def validate_frame(frame: Any) -> dict[str, Any] | None:
+    if frame is None:
+        return None
+    if not isinstance(frame, dict) or not set(frame).issubset(_FRAME_KEYS):
+        raise ValueError('invalid item_frame payload')
+    facing = frame.get('facing', 'north')
+    item = frame.get('item', '')
+    rotation = frame.get('rotation', 0)
+    if not isinstance(facing, str) or facing not in VEC:
+        raise ValueError('item_frame requires valid facing')
+    if not isinstance(item, str) or not _ITEM_RE.fullmatch(item):
+        raise ValueError('item_frame requires bounded vanilla item id')
+    if type(rotation) is not int or not 0 <= rotation <= 7:
+        raise ValueError('item_frame rotation must be 0..7')
+    for bkey in ('invisible', 'glow', 'fixed'):
+        if bkey in frame and not isinstance(frame[bkey], bool):
+            raise ValueError(f'item_frame {bkey} must be bool')
+    norm_item = item.split(':', 1)[1] if ':' in item else item
+    return {
+        'facing': facing,
+        'item': norm_item,
+        'rotation': rotation,
+        'invisible': bool(frame.get('invisible', False)),
+        'glow': bool(frame.get('glow', False)),
+        'fixed': bool(frame.get('fixed', False)),
+    }
+
+
 def load_json(path: str | Path) -> Any:
     p = Path(path)
     if p.stat().st_size > MAX_BYTES:
@@ -144,8 +171,8 @@ def validate_cells(obj: dict[str, Any]) -> dict[tuple[int, int, int], list[Any]]
         raise ValueError('too many cells')
     out: dict[tuple[int, int, int], list[Any]] = {}
     for c in obj['cells']:
-        if not isinstance(c, list) or not 4 <= len(c) <= 7:
-            raise ValueError('cell must have 4–7 fields')
+        if not isinstance(c, list) or not 4 <= len(c) <= 8:
+            raise ValueError('cell must have 4–8 fields')
         x, y, z, state = c[:4]
         if any(type(v) is not int or abs(v) > 1024 for v in (x, y, z)):
             raise ValueError('coordinates must be bounded integers')
@@ -162,10 +189,16 @@ def validate_cells(obj: dict[str, Any]) -> dict[tuple[int, int, int], list[Any]]
         component = c[5] if len(c) > 5 else ''
         if not isinstance(component, str) or len(component) > 100:
             raise ValueError('invalid component label')
-        asset = c[6] if len(c) > 6 else None
-        if asset is not None and asset not in ASSETS:
-            raise ValueError('unsupported prop asset')
-        out[x, y, z] = [x, y, z, state, lines, component, asset]
+        raw_asset = c[6] if len(c) > 6 else None
+        asset = None
+        if raw_asset is not None:
+            if not isinstance(raw_asset, str):
+                raise ValueError('unsupported prop asset')
+            asset = resolve_head_name(raw_asset)
+            if asset is None:
+                raise ValueError('unsupported prop asset')
+        frame = validate_frame(c[7] if len(c) > 7 else None)
+        out[x, y, z] = [x, y, z, state, lines, component, asset, frame]
     return out
 
 
@@ -174,10 +207,11 @@ def name(state: str) -> str:
 
 
 def passable(state: str) -> bool:
-    b, _ = state_parts(state)
+    b, p = state_parts(state)
     return (
         b == 'air'
         or b in RAIL_BLOCKS
+        or (b.endswith('_trapdoor') and p.get('open') == 'true')
         or b.endswith((
             '_door', '_fence_gate', '_sign', '_hanging_sign', '_wall_hanging_sign',
             '_carpet', '_button', '_pressure_plate',
@@ -187,7 +221,7 @@ def passable(state: str) -> bool:
             'cornflower', 'azure_bluet', 'oxeye_daisy', 'lily_of_the_valley',
             'allium', 'blue_orchid', 'red_tulip', 'orange_tulip', 'white_tulip', 'pink_tulip',
             'torch', 'wall_torch', 'redstone_torch', 'redstone_wall_torch',
-            'lever', 'ladder', 'vine', 'glow_lichen',
+            'lever', 'ladder', 'vine', 'glow_lichen', 'tripwire_hook',
         }
     )
 
@@ -205,7 +239,7 @@ def full_block(state: str) -> bool:
         'lantern', 'soul_lantern', 'end_rod', 'flower_pot', 'candle', 'cake',
         'composter', 'cauldron', 'water_cauldron', 'hopper', 'lectern',
         'grindstone', 'stonecutter', 'anvil', 'bell', 'scaffolding',
-        'campfire', 'soul_campfire', 'daylight_detector', 'lever',
+        'campfire', 'soul_campfire', 'daylight_detector', 'lever', 'tripwire_hook',
     }:
         return False
     return True
@@ -215,7 +249,8 @@ def flush_top(state: str) -> bool:
     b, p = state_parts(state)
     return (
         full_block(state)
-        or b == 'scaffolding'
+        or b in ('scaffolding', 'cauldron', 'composter', 'lectern', 'hopper')
         or (b.endswith('_slab') and p.get('type') in ('top', 'double'))
         or (b.endswith('_stairs') and p.get('half') == 'top')
+        or (b.endswith('_trapdoor') and p.get('half') == 'top' and p.get('open') != 'true')
     )

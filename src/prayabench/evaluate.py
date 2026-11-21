@@ -7,13 +7,22 @@ import re
 from typing import Any
 
 from . import __version__
+from .art import assess_art
+from .praya_lint import (
+    BOOKSHELF_BANNED_TASKS,
+    ENCLOSED_BUILDING_TASKS,
+    FREESTANDING_SIGN_COMPS,
+    GROUND_FLOOR_BOOKSHELF_BANNED,
+    compute_walk_levels,
+    flood_walk,
+    run_praya_lints,
+)
 from .scene import (
     ASSETS, FLORA_SOIL, GRAVITY_BLOCKS, GROUND_FLORA, PALETTE,
     POST_MOUNTED_ASSETS, RAIL_BLOCKS, TALL_FLORA, VEC,
     flush_top, full_block, load_json, name, passable, state_parts, validate_cells,
 )
 from .tasks import TASK_SPECS, verify_run
-from .art import assess_art
 from .voxel_checks import add_scene_checks
 from .voxel_tasks import VEHICLES
 
@@ -151,8 +160,11 @@ def assess(fixture: dict[str, Any], submission: dict[str, Any]) -> dict[str, Any
         b, p = state_parts(c[3])
         if not (bx0 <= x <= bx1 and by0 <= y <= by1 and bz0 <= z <= bz1):
             add('out_of_bounds', pos, f'Outside the declared scene bounds {bounds}.')
+        base_cell = base.get(pos, [0, 0, 0, 'air', None, '', None, None])
         if pos in protected and (
-            c[3] != block_from(base, pos) or c[4] != base.get(pos, [0, 0, 0, 'air', None])[4]
+            c[3] != base_cell[3]
+            or c[4] != base_cell[4]
+            or c[7] != base_cell[7]
         ):
             add('protected_change', pos, 'Changed protected terrain, infrastructure or historic architecture.')
         if b not in PALETTE:
@@ -205,21 +217,21 @@ def assess(fixture: dict[str, Any], submission: dict[str, Any]) -> dict[str, Any
                 below_name = name(below)
                 if (
                     below_name not in ('iron_bars', 'iron_chain', 'chain', 'glass_pane')
-                    and not below_name.endswith(('_stained_glass_pane', '_fence'))
+                    and not below_name.endswith('_stained_glass_pane')
                 ):
-                    add('mailbox_plinth', pos, f'{c[6]} needs a slender bar, chain, fence or glass post.')
+                    add('head_on_plinth', pos, f'{c[6]} needs an iron bar, chain or glass post, never a block plinth.')
             elif not flush_top(below):
-                add('floating_prop', pos, f'Prop does not sit flush on {below}.')
+                add('floating_prop_head', pos, f'Prop head does not sit flush on {below}.')
 
         if b.endswith('_sign') and 'wall' not in b and not b.endswith('_hanging_sign'):
-            if not flush_top(below) and not name(below).endswith(('_fence', '_wall')):
+            if not flush_top(below) and not name(below).endswith(('_fence', '_wall', '_pane')) and name(below) not in ('iron_bars', 'iron_chain', 'chain'):
                 add('floating_fixture', pos, f'Standing sign has no ground support ({below}).')
-            elif c[5] not in ('road-sign', 'traffic-sign'):
-                add('standing_sign', pos, 'Non-traffic signs should mount on architecture.', 'warn')
+            elif c[5] not in FREESTANDING_SIGN_COMPS:
+                add('standing_sign', pos, 'Non-traffic signs must mount on architecture, piers or fascias, never stand in the ground.', 'error')
 
         blank_trim = vehicle and 'wall_sign' in b and 'hanging' not in b
         if b.endswith(('_sign', '_hanging_sign', '_wall_hanging_sign')) and not blank_trim and not any(s.strip() for s in (c[4] or [])):
-            add('blank_sign', pos, 'No visible sign text.', 'warn')
+            add('blank_sign', pos, 'No visible sign text.', 'error')
 
         if b == 'snow':
             layers = p.get('layers', '1')
@@ -249,17 +261,8 @@ def assess(fixture: dict[str, Any], submission: dict[str, Any]) -> dict[str, Any
                 or op.get('hinge', 'left') != p.get('hinge', 'left')
             ):
                 add('unpaired_door', pos, 'Door is missing its matching aligned half.')
-            if lower:
-                if not flush_top(below):
-                    add('floating_fixture', pos, f'Door threshold has no flush floor below ({below}).')
-                facing = p.get('facing', 'north')
-                perp = ((1, 0), (-1, 0)) if facing in ('north', 'south') else ((0, 1), (0, -1))
-                if any(
-                    name(block((x + dx, yy, z + dz))).endswith('glass_pane')
-                    for dx, dz in perp
-                    for yy in (y, y + 1)
-                ):
-                    add('door_pane_jamb', pos, 'Glazed wall door jamb uses thin glass panes instead of full blocks.', 'warn')
+            if lower and not flush_top(below):
+                add('floating_fixture', pos, f'Door threshold has no flush floor below ({below}).')
 
         if b.endswith('_bed'):
             part = p.get('part', 'foot')
@@ -326,12 +329,38 @@ def assess(fixture: dict[str, Any], submission: dict[str, Any]) -> dict[str, Any
             if name(support) == 'air':
                 add('unsupported_rod', pos, 'No attachment at the rod base.')
 
-        if 'glass' in b and y >= 3:
+        if 'glass' in b and y >= 3 and task != 'washroom-fitout':
             for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1)):
                 npos = (x + dx, y, z + dz)
                 if npos in protected and full_block(block_from(base, npos)):
                     add('blind_party_wall_glazing', pos, 'Glazing sits directly against an opaque protected neighbour wall.', 'warn')
                     break
+
+    # --- Half-block walkability flood (1.8-block slab-aware headroom) ---
+    levels = compute_walk_levels(block, w, h, d, paved_only=False)
+    seed_cols = (
+        {(pt[0], pt[1]) for pt in fixture['street_seeds']}
+        if 'street_seeds' in fixture
+        else {(x, z) for x in range(w) for z in range(min(5, d))}
+    )
+    seen = flood_walk(levels, seed_cols, w, h) if False else flood_walk(levels, seed_cols, w, d)
+
+    # --- Architectural acceptance: CAD, sign, door, massing, elevation, bookshelf & roof lints ---
+    lint_summary = run_praya_lints(
+        task=task,
+        vehicle=vehicle,
+        reqs=reqs,
+        base=base,
+        edits=edits,
+        grid=grid,
+        protected=protected,
+        block_fn=block,
+        levels=levels,
+        w=w,
+        h=h,
+        d=d,
+        add=add,
+    )
 
     # --- Terraforming: orphan foliage & subsurface void checks ---
     repair_rect = fixture.get('repair_rect') or spec.get('repair_rect')
@@ -345,39 +374,6 @@ def assess(fixture: dict[str, Any], submission: dict[str, Any]) -> dict[str, Any
     # --- 3D Sky + Block Light check for enclosed dark rooms ---
     if edits and not vehicle:
         _check_interior_darkness(grid, edits, block, w, h, d, add)
-
-    # --- Half-block walkability flood from protected street seeds ---
-    levels: dict[tuple[int, int], list[int]] = {}
-    for x in range(w):
-        for z in range(d):
-            out: list[int] = []
-            for y in range(h):
-                here = block((x, y, z))
-                b, p = state_parts(here)
-                if passable(here) and passable(block((x, y + 1, z))) and flush_top(block((x, y - 1, z))):
-                    out.append(2 * y)
-                elif (
-                    (b.endswith('_stairs') and p.get('half', 'bottom') == 'bottom')
-                    or (b.endswith('_slab') and p.get('type', 'bottom') == 'bottom')
-                ) and passable(block((x, y + 1, z))) and passable(block((x, y + 2, z))):
-                    out.append(2 * y + (2 if b.endswith('_stairs') else 1))
-            levels[x, z] = out
-
-    seed_cols = (
-        {(pt[0], pt[1]) for pt in fixture['street_seeds']}
-        if 'street_seeds' in fixture
-        else {(x, z) for x in range(w) for z in range(min(5, d))}
-    )
-    seen = {(x, z, hh) for (x, z), hs in levels.items() if (x, z) in seed_cols for hh in hs}
-    q = deque(seen)
-    while q:
-        x, z, hh = q.popleft()
-        for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-            for nh in levels.get((x + dx, z + dz), []):
-                cand = (x + dx, z + dz, nh)
-                if abs(nh - hh) <= 2 and cand not in seen:
-                    seen.add(cand)
-                    q.append(cand)
 
     doors: list[list[int]] = []
     reachable_doors: list[list[int]] = []
@@ -409,6 +405,7 @@ def assess(fixture: dict[str, Any], submission: dict[str, Any]) -> dict[str, Any
         seed_cols=seed_cols,
         unpaired_bed_positions=unpaired_bed_positions,
         subsurface_void_cols=subsurface_void_cols,
+        lint_summary=lint_summary,
     )
 
     return {
@@ -426,6 +423,7 @@ def assess(fixture: dict[str, Any], submission: dict[str, Any]) -> dict[str, Any
         'reachable_doors': reachable_doors,
         'signs': [{'at': list(p), 'text': c[4]} for p, c in edits.items() if c[4] is not None],
         'props': [{'at': list(p), 'asset': c[6]} for p, c in edits.items() if c[6]],
+        'frames': [{'at': list(p), 'frame': c[7]} for p, c in edits.items() if len(c) > 7 and c[7]],
         'review_status': 'Human visual review required',
         'limitations': [
             'Not a game physics engine or accessibility certification.',
@@ -619,8 +617,10 @@ def _assess_completion(
     seed_cols: set[tuple[int, int]],
     unpaired_bed_positions: set[tuple[int, int, int]],
     subsurface_void_cols: int,
+    lint_summary: dict[str, Any],
 ) -> dict[str, Any]:
     checks: list[dict[str, Any]] = []
+    task = fixture['task']
 
     def record(req_name: str, expected: Any, observed: Any, met: bool) -> None:
         checks.append({
@@ -644,6 +644,17 @@ def _assess_completion(
     if reqs.get('reachable_doors', 0) > 0:
         target = reqs['reachable_doors']
         record('reachable_doors', target, len(reachable_doors), len(reachable_doors) >= target)
+
+    if reqs.get('paved_street_connection'):
+        paved_levels = compute_walk_levels(block_fn, w, h, d, paved_only=True)
+        paved_seen = flood_walk(paved_levels, seed_cols, w, d)
+        if reqs.get('reachable_doors', 0) > 0:
+            paved_doors = sum(1 for dr in reachable_doors if (dr[0], dr[2], 2 * dr[1]) in paved_seen)
+            target_d = reqs['reachable_doors']
+            record('paved_street_connection', target_d, paved_doors, paved_doors >= target_d)
+        else:
+            paved_int = len({(x, z) for (x, z, _) in paved_seen if z >= 5 and (x, z) not in seed_cols})
+            record('paved_street_connection', '>=6 paved interior cells', paved_int, paved_int >= 6)
 
     if 'south_bank_door_min_z' in reqs:
         min_z = reqs['south_bank_door_min_z']
@@ -709,6 +720,11 @@ def _assess_completion(
             present = sum(1 for c in edits.values() if c[6] == asset and name(c[3]) != 'air')
             record(f'prop:{asset}', 1, present, present >= 1)
 
+    if 'min_custom_heads' in reqs:
+        target = reqs['min_custom_heads']
+        total_heads = sum(1 for c in edits.values() if c[6] is not None and name(c[3]) != 'air')
+        record('custom_head_density', target, total_heads, total_heads >= target)
+
     if 'signs' in reqs:
         target = reqs['signs']
         valid_signs = sum(
@@ -717,6 +733,53 @@ def _assess_completion(
             and any(s.strip() for s in (c[4] or []))
         )
         record('mounted_signs', target, valid_signs, valid_signs >= target)
+
+    if 'address_plaque' in reqs:
+        target = reqs['address_plaque']
+        obs = lint_summary['address_signs']
+        record('address_plaque', target, obs, obs >= target)
+
+    if reqs.get('dedication_placard'):
+        obs = lint_summary['built_placards']
+        record('dedication_placard', 'interior Built sign at floor_y+2+ with tool item_frame above', obs, obs >= 1)
+
+    if reqs.get('renovation_placard'):
+        obs = lint_summary['renovated_placards']
+        record('renovation_placard', 'interior Renovated sign at floor_y+2+ with tool item_frame above', obs, obs >= 1)
+
+    if 'operational_signage' in reqs:
+        target = reqs['operational_signage']
+        obs = lint_summary['operational_signs']
+        record('operational_signage', target, obs, obs >= target)
+
+    if task in ENCLOSED_BUILDING_TASKS:
+        has_shell = bool(lint_summary['side_blank_ratios'])
+        record(
+            'elevation_articulation',
+            'all exposed sides <=62% blank and non-planar (>=2 depth planes)',
+            lint_summary['side_blank_ratios'],
+            has_shell and lint_summary['elevations_ok'],
+        )
+        record(
+            'recessed_entrance',
+            '1-block recessed street entrance portal',
+            lint_summary['recessed_entry_ok'] and len(reachable_doors) >= 1,
+            lint_summary['recessed_entry_ok'] and len(reachable_doors) >= 1,
+        )
+        record('praya_massing', '6x8+ body, <=3-clear chimney, no raised drawbridge', lint_summary['massing_ok'], has_shell and lint_summary['massing_ok'])
+
+    if task in BOOKSHELF_BANNED_TASKS or task in GROUND_FLOOR_BOOKSHELF_BANNED:
+        bv = lint_summary['bookshelf_violations']
+        record('no_bookshelf_filler', 0, bv, bv == 0)
+
+    if reqs.get('flat_roof_equipment'):
+        has_shell = bool(lint_summary['side_blank_ratios'])
+        record(
+            'roof_equipment_form',
+            '2x2 rail fan unit, solar array, or HVAC heads (no featureless cubes)',
+            lint_summary['roof_equip_ok'],
+            has_shell and lint_summary['roof_equip_ok'],
+        )
 
     if 'beds' in reqs:
         target = reqs['beds']
@@ -730,7 +793,7 @@ def _assess_completion(
 
     if 'bookshelves' in reqs:
         target = reqs['bookshelves']
-        cnt = sum(1 for c in edits.values() if name(c[3]) == 'bookshelf')
+        cnt = sum(1 for c in edits.values() if name(c[3]) in ('bookshelf', 'chiseled_bookshelf'))
         record('bookshelves', target, cnt, cnt >= target)
 
     if 'seating' in reqs:
@@ -757,7 +820,7 @@ def _assess_completion(
         target = reqs['flora']
         cnt = sum(
             1 for c in edits.values()
-            if name(c[3]) in GROUND_FLORA or name(c[3]).startswith('potted_')
+            if name(c[3]) in GROUND_FLORA or name(c[3]).startswith('potted_') or name(c[3]) in ('azalea_leaves', 'flowering_azalea_leaves')
         )
         record('planted_flora', target, cnt, cnt >= target)
 
@@ -891,7 +954,7 @@ def evaluate(run: str | Path, build: str | Path, out: str | Path) -> dict[str, A
     report = assess(fixture, submission)
     report['submission_sha256'] = hashlib.sha256(Path(build).read_bytes()).hexdigest()
     report['evaluator_sha256'] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
-    modules = ('scene.py','voxel_checks.py','voxel_tasks.py') if report['track']=='voxel' else ('art.py',)
+    modules = ('scene.py', 'heads.py', 'praya_lint.py', 'voxel_checks.py', 'voxel_tasks.py') if report['track'] == 'voxel' else ('art.py',)
     report['evaluator_dependencies'] = {
         module: hashlib.sha256(Path(__file__).with_name(module).read_bytes()).hexdigest() for module in modules
     }

@@ -46,11 +46,11 @@ def report(
 <title>prayabench build comparison</title>
 <style>*{box-sizing:border-box}body{font:16px/1.5 system-ui,sans-serif;background:#f1f4f0;color:#24372e;margin:0}main{max-width:1120px;margin:auto;padding:40px 24px}h1{font-size:clamp(36px,6vw,60px);letter-spacing:-2px;margin:0}h2{margin:0}header{margin-bottom:30px}.tag{font:12px monospace;text-transform:uppercase;letter-spacing:2px;color:#52735b}.muted{color:#586b61}.brief{background:#e6ede7;border-radius:10px;padding:12px 16px;margin:14px 0}article{background:white;border:1px solid #cbd8cd;border-radius:16px;margin:24px 0;padding:22px;box-shadow:0 5px 16px #28422d08}.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:14px 0}.sep{width:1px;height:22px;background:#cbd8cd;margin:0 4px}button{font:inherit;background:#edf3ed;border:1px solid #becfbe;border-radius:8px;padding:7px 13px;color:inherit;cursor:pointer}button[aria-pressed=true]{background:#294f39;color:white}button:focus-visible,summary:focus-visible{outline:3px solid #c48335;outline-offset:3px}.scene{background:#eef2ef;border-radius:10px;overflow:hidden}.scene svg{width:100%;max-height:650px;display:block}summary{cursor:pointer;padding:10px 0;font-weight:650}pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:380px;overflow:auto;font:13px/1.5 monospace;background:#f2f5f1;padding:14px;border-radius:8px}.metrics{display:flex;gap:20px;flex-wrap:wrap;padding:12px 0}.metric b{font-size:22px;display:block}.metric span{font-size:12px;color:#586b61}footer{margin:36px 0}.hidden{display:none}textarea{width:100%;min-height:80px;font:inherit;border:1px solid #becfbe;border-radius:8px;padding:10px}a{color:#285b3c}</style>
 <main data-task="''' + html.escape(task_name) + '''" data-blind="''' + str(blind).lower() + '''"><header><div class="tag">Spatial reasoning · construction · terraforming · design</div><h1>prayabench</h1><p>A visual benchmark for AI building in Minecraft.</p>
-<p class="muted">Inspect the builds before revealing their labels. Rotate the view, slice upper and ground levels, then compare construction findings, brief completion and sign/prop records. These flat-colour previews approximate geometry; they are not Minecraft screenshots.</p></header>''']
+<p class="muted">Inspect the builds before revealing their labels. Rotate the view, slice upper and ground levels, then compare construction findings, brief completion and sign/prop/frame records. Previews render oriented custom heads, item frames and sign text.</p></header>''']
 
     if not voxel:
         parts[0] = parts[0].replace(
-            'Inspect the builds before revealing their labels. Rotate the view, slice upper and ground levels, then compare construction findings, brief completion and sign/prop records. These flat-colour previews approximate geometry; they are not Minecraft screenshots.',
+            'Inspect the builds before revealing their labels. Rotate the view, slice upper and ground levels, then compare construction findings, brief completion and sign/prop/frame records. Previews render oriented custom heads, item frames and sign text.',
             'Compare the rendered submissions and inspect the checks before revealing their labels.',
         )
     dims = f'{bounds[3]+1}×{bounds[4]+1}×{bounds[5]+1}' if voxel else f'{fixture.get("width",16)}×{fixture.get("height",32)}'
@@ -99,7 +99,7 @@ def report(
             f'</div>'
         )
         parts.append('<p class="muted">' + html.escape(checks['limitations'][-1]) + '</p>')
-        detail = ('Sign and prop records', {'signs': checks['signs'], 'props': checks['props']}) if voxel else ('Asset measurements', checks['metrics'])
+        detail = ('Sign, prop and frame records', {'signs': checks['signs'], 'props': checks['props'], 'frames': checks.get('frames', [])}) if voxel else ('Asset measurements', checks['metrics'])
         for heading, value in [
             ('Brief completion checks', comp),
             ('Located findings', checks['issues']),

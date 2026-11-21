@@ -37,8 +37,8 @@ class CoreTests(unittest.TestCase):
 
     def test_mailbox_needs_slender_post(self):
         h=[18,6,7,'player_head',None,'','mailbox_orange']
-        self.assertIn('mailbox_plinth',self.codes([h,[18,5,7,'stone']]))
-        self.assertNotIn('mailbox_plinth',self.codes([h,[18,5,7,'iron_bars']]))
+        self.assertIn('head_on_plinth',self.codes([h,[18,5,7,'stone']]))
+        self.assertNotIn('head_on_plinth',self.codes([h,[18,5,7,'iron_bars']]))
 
     def test_disconnected_door_is_not_seeded_by_indoor_paving(self):
         cells=[[x,10,z,'smooth_stone'] for x in range(6,10) for z in range(8,12)]
@@ -126,7 +126,7 @@ class CoreTests(unittest.TestCase):
             [8, 3, 8, 'oak_door[facing=north,half=lower]'],
             [8, 4, 8, 'oak_door[facing=north,half=upper]'],
         ]
-        self.assertIn('door_pane_jamb', self.codes(pane_jamb, 'small-house'))
+        self.assertIn('pane_beside_door', self.codes(pane_jamb, 'small-house'))
 
     def test_bed_requires_matching_head_and_foot_halves(self):
         orphan = [[8, 3, 10, 'white_bed[facing=north,part=foot]']]

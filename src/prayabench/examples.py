@@ -22,12 +22,15 @@ from .voxel_tasks import FACINGS, VEHICLES
 # Preferred camera index (0=SE, 1=SW, 2=NW, 3=NE) for front-facing preview cards.
 _DEFAULT_PREVIEW_VIEW: dict[str, int] = {
     'transit-shelter': 2,
+    'pocket-park': 2,
     'sloped-cafe': 2,
     'shop-renovation': 2,
     'small-house': 2,
     'utility-substation': 2,
+    'canal-crossing': 2,
     'corner-shophouse': 2,
     'party-wall-infill': 2,
+    'hillside-pavilion': 2,
     'rowhouse-terrace': 2,
     'medical-clinic': 2,
     'grocery-supermarket': 2,
@@ -40,6 +43,13 @@ _DEFAULT_PREVIEW_VIEW: dict[str, int] = {
     'facade-depth-retrofit': 2,
     'rowhouse-shop-conversion': 2,
     'inspector-repair': 2,
+}
+
+# Roof cutaway height for interior-only fit-out shells so atlas previews reveal the room inside.
+_DEFAULT_PREVIEW_CUT: dict[str, int] = {
+    'washroom-fitout': 5,
+    'curved-tunnel': 6,
+    'shop-renovation': 8,
 }
 
 
@@ -94,17 +104,39 @@ def atlas(
         errors = sum(1 for i in rep['issues'] if i['severity'] == 'error')
         warns = sum(1 for i in rep['issues'] if i['severity'] == 'warn')
         t_track = spec.get('track', 'voxel')
+        inventory_html = ''
         if t_track == 'voxel':
             grid = validate_cells({'cells': f['cells']}) | validate_cells(ex)
             view = _DEFAULT_PREVIEW_VIEW.get(task_name, 0)
+            cut = _DEFAULT_PREVIEW_CUT.get(task_name)
             bounds = f['bounds']
             dims = f'{bounds[3]+1}×{bounds[4]+1}×{bounds[5]+1}'
-            preview = '<div class="scene">' + svg(grid, view=view, bounds=bounds) + '</div>'
+            preview = '<div class="scene">' + svg(grid, view=view, cut=cut, bounds=bounds) + '</div>'
+            n_heads = len(rep.get('props', []))
+            n_signs = len(rep.get('signs', []))
+            n_frames = len(rep.get('frames', []))
+            sign_snippets = [
+                ' / '.join(s.strip() for s in item['text'] if s.strip())
+                for item in rep.get('signs', [])[:3]
+                if item.get('text')
+            ]
+            prop_names = sorted({p['asset'] for p in rep.get('props', [])})
+            inv_bits = [f'{n_heads} heads · {n_signs} signs' + (f' · {n_frames} frame' if n_frames else '')]
+            if sign_snippets:
+                inv_bits.append('Signs: ' + '; '.join(sign_snippets))
+            if prop_names:
+                shown = ', '.join(prop_names[:6]) + (f' +{len(prop_names) - 6}' if len(prop_names) > 6 else '')
+                inv_bits.append('Props: ' + shown)
+            inventory_html = '<div class="inv">' + '<br>'.join(html.escape(b) for b in inv_bits) + '</div>'
         else:
             dims = t_track
             thumbs = art_previews(f, ex)
-            # Show primary rendered preview (front assembled head for head-skin, quantized map or banner)
-            chosen = thumbs[1] if t_track == 'head-skin' and len(thumbs) > 1 else thumbs[0]
+            if t_track == 'map-art' and len(thumbs) > 1:
+                chosen = thumbs[1]  # Quantized map-palette preview with tile seam guides
+            elif t_track == 'head-skin' and len(thumbs) > 1:
+                chosen = thumbs[1]
+            else:
+                chosen = thumbs[0]
             preview = '<div class="scene art">' + chosen[1] + '</div>'
 
         status = f'{comp["met_count"]}/{comp["total_count"]} checks · {errors} err · {warns} warn'
@@ -115,6 +147,7 @@ def atlas(
             f'<h2>{html.escape(task_name)}</h2>'
             + preview
             + f'<div class="badge">{html.escape(status)}</div>'
+            + inventory_html
             + f'<p class="brief">{html.escape(spec["brief"])}</p>'
             '</article>'
         )
@@ -123,16 +156,17 @@ def atlas(
         '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
         '<title>prayabench reference atlas</title>'
         '<style>*{box-sizing:border-box}body{font:15px/1.45 system-ui,sans-serif;background:#eef2ee;color:#1f3128;margin:0}'
-        'main{max-width:1440px;margin:auto;padding:32px 24px}h1{font-size:38px;letter-spacing:-1px;margin:0 0 8px}'
-        '.note{color:#4d6257;margin:0 0 24px}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px}'
+        'main{max-width:1480px;margin:auto;padding:32px 24px}h1{font-size:38px;letter-spacing:-1px;margin:0 0 8px}'
+        '.note{color:#4d6257;margin:0 0 24px}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:18px}'
         '.card{background:#fff;border:1px solid #cad6cc;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px}'
         '.meta{display:flex;justify-content:space-between;font:12px monospace;color:#52715d;text-transform:uppercase}'
         'h2{margin:0;font-size:19px}.scene{background:#eef2ef;border-radius:10px;overflow:hidden;aspect-ratio:6/5;display:flex;align-items:center;justify-content:center}'
         '.scene svg,.scene img{width:100%;height:100%;object-fit:contain;display:block}'
         '.badge{font:12px monospace;color:#1e5635;background:#e4f2e8;border-radius:999px;padding:4px 10px;align-self:flex-start}'
+        '.inv{font:11.5px/1.4 ui-monospace,SFMono-Regular,monospace;color:#334e3f;background:#f4f7f4;border-radius:8px;padding:6px 9px}'
         '.brief{margin:0;font-size:13px;color:#45594f}</style>'
         f'<main><h1>prayabench reference atlas ({len(selected)} tasks)</h1>'
-        '<p class="note">Deterministic reference examples, not model results. Offline flat-colour previews.</p>'
+        '<p class="note">Deterministic reference examples, not model results. Isometric previews render oriented custom heads, item frames and sign text.</p>'
         '<section class="grid">' + '\n'.join(cards) + '</section></main></html>'
     )
     out_path = Path(out)
