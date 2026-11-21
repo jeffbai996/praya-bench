@@ -944,10 +944,10 @@ def _grocery_supermarket() -> dict[str, Any]:
     b.dressed_window('south', 24, 9, 15, 4, 6, glass='light_blue_stained_glass', shutter_wood='acacia')
     b.dressed_window('south', 24, 19, 26, 4, 6, glass='light_blue_stained_glass', shutter_wood='acacia')
 
-    # Slatted commercial sub-ceiling with end_rods + roof sea_lantern bays (zero dark_interior!)
+    # Ceiling-flush sea_lantern bays under the roof deck (y=7), clear of the end_rod runs
     for x in (9, 14, 19, 24, 27):
         for z in (9, 13, 17, 21):
-            b.put(x, 8, z, 'sea_lantern', component='lights')
+            b.put(x, 7, z, 'sea_lantern', component='lights')
     for z in (10, 15, 20):
         for x in range(7, 29):
             b.put(x, 7, z, 'end_rod[facing=east]', component='lights')
@@ -986,13 +986,38 @@ def _grocery_supermarket() -> dict[str, Any]:
     b.head(24, 4, 22, 'crab_ice', facing='north')
     b.head(26, 4, 22, 'salmon_fillet', facing='north')
 
-    # Rooftop mechanical package: two 2x2 smooth_quartz + 4-rail circular exhaust fans + solar + ac_unit
-    b.fan_unit_2x2(10, 9, 12)
-    b.fan_unit_2x2(21, 9, 15)
-    for sx in range(14, 19):
-        for sz in (13, 14):
-            b.put(sx, 9, sz, 'daylight_detector[inverted=true]', component='roof')
-    b.head(13, 9, 12, 'ac_unit', facing='north', component='roof')
+    # Roof plan. Two continuous glazed rooflight strips (north and south bays) with quartz kerbs,
+    # a screened mechanical yard, a two-bank solar array and a roof access hatch.
+    for z0 in (8, 21):
+        for x in range(8, 28):
+            for z in (z0, z0 + 1):
+                b.put(x, 8, z, 'light_blue_stained_glass', component='roof')
+        for x in range(7, 29):
+            b.put(x, 9, z0 - 1, 'smooth_quartz_slab[type=bottom]', component='roof')
+            b.put(x, 9, z0 + 2, 'smooth_quartz_slab[type=bottom]', component='roof')
+        for z in (z0, z0 + 1):
+            b.put(7, 9, z, 'smooth_quartz_slab[type=bottom]', component='roof')
+            b.put(28, 9, z, 'smooth_quartz_slab[type=bottom]', component='roof')
+    # Mechanical yard x=8..17, z=12..18: two 2x2 fan condensers and split AC heads behind a low screen wall
+    for x in range(8, 18):
+        for z in (12, 18):
+            if (x, z) != (12, 18):                      # service gap on the south side
+                b.put(x, 9, z, 'andesite_wall', component='roof')
+    for z in range(13, 18):
+        b.put(8, 9, z, 'andesite_wall', component='roof')
+        b.put(17, 9, z, 'andesite_wall', component='roof')
+    b.fan_unit_2x2(10, 9, 13)
+    b.fan_unit_2x2(13, 9, 13)
+    b.put(10, 9, 16, 'smooth_stone', component='roof')
+    b.head(10, 10, 16, 'ac_unit', facing='south', component='roof')
+    b.put(15, 9, 16, 'smooth_stone', component='roof')
+    b.head(15, 10, 16, 'ac_unit', facing='south', component='roof')
+    # Solar array: two banks of four rows, with a maintenance aisle between them
+    for x in range(19, 28):
+        for z in (12, 13, 16, 17):
+            b.put(x, 9, z, 'daylight_detector[inverted=true]', component='roof')
+    # Roof access hatch beside the service aisle
+    b.put(19, 9, 19, 'iron_trapdoor[facing=north,half=bottom,open=false]', component='roof')
 
     # Street furniture: kerbside parking_meter on iron_bars, shopping-cart corral & bin
     b.put(9, 3, 5, 'iron_bars')

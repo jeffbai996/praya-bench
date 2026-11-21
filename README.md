@@ -178,6 +178,40 @@ adaptive floor cutaways. `summary` aggregates validity and completion side by si
 **Brief completion (`completion`):**
 - Task-specific structural and functional targets: minimum edited volume, peak tower height, multi-tier vertical floor reachability (elevated rail platforms, midrises, highrises), rooftop aircraft warning beacons, south-bank/summit/multi-rowhouse entrances, dual-street glazing, semantic props (`coffee_maker`, `pos_terminal`, `mailbox_orange`, `ticket_validator`, `computer_monitor`, `fire_hydrant`, `parking_meter`, `trash_bin`, `defibrillator`), paired beds, trees/flora, water features, chunk-seam elevation matching (`smooth_chunk_seam`), reconnected roads (`reconnected_road`), restored continuous waterways (`continuous_waterway`), and scar top-dressing (`surface_top_dressing`).
 
+**Acceptance standard (enclosed buildings, fit-outs and retrofits):**
+
+Passing the checks above proves a build stands up and has what the brief named.
+The acceptance checks ask whether it is finished. They are the bar the
+reference examples are held to, and a model has to clear the same bar.
+
+- *Signage:* mounted signs (`mounted_signs`), an address plaque beside the
+  entrance at eye height (`address_plaque`), an interior `Built` or `Renovated`
+  placard with a tool in an item frame above it (`dedication_placard`,
+  `renovation_placard`), and hours, menu or department signs
+  (`operational_signage`). Signs must fit their line width (`pixel_overflow`)
+  and may not stand in the ground unless they are street signs.
+- *Elevations:* every exposed side at most 62% blank and stepped in at least two
+  depth planes (`elevation_articulation`, `blank_elevation`, `planar_facade`), a
+  recessed street entrance (`recessed_entrance`), and no door opening onto a
+  drop or a raised walkway (`door_drop`, `raised_walkway`).
+- *Massing:* a body of at least 6×8, chimneys no more than three blocks clear,
+  sane tower proportions and no wool used for colour (`praya_massing`,
+  `footprint_too_small`, `chimney_too_tall`, `tower_proportion`,
+  `wool_massing`).
+- *Fit-out:* a minimum count of semantic props (`min_custom_heads`), no
+  bookshelves as shelving in shops and civic buildings (`no_bookshelf_filler`),
+  caged emergency lights rather than exit-sign heads (`banned_exit_head`), and
+  no wild flora indoors (`indoor_wild_flora`).
+- *Roofs:* flat roofs carry real equipment, such as a 2×2 fan unit, a solar
+  array or HVAC heads, not a featureless cube (`roof_equipment_form`).
+- *Physical plausibility:* no floating slabs, panes, carpets or wall fixtures,
+  stairs with headroom that lead somewhere (`stair_headroom`,
+  `stair_dead_end`), and mailboxes and meters on an iron bar, chain or glass
+  post, never a block.
+
+The thresholds live in `src/prayabench/praya_lint.py` and the per-task
+requirements in `src/prayabench/tasks.py`.
+
 ## What does not get proved
 
 The evaluator is a deliberately small approximation, not the Minecraft engine,

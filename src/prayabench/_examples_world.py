@@ -326,65 +326,59 @@ def _junction_wayfinding() -> dict[str, Any]:
 
 def _specimen_conifer() -> dict[str, Any]:
     b = VoxelBuilder('tree')
-    # PNW Douglas-fir / Sitka spruce rooted at (10,3,10); spruce_log + spruce_leaves[persistent=true] only above y=2.
-    rng = random.Random('specimen-conifer-praya-v1')
-    height = 15
-    for y in range(3, 3 + height - 2):
+    # Sitka spruce rooted at (10,3,10): bare trunk base, then alternating wide and narrow whorls
+    # so the boughs read as layers, tapering to a single-leaf leader.
+    rng = random.Random('specimen-conifer-v2')
+    for y in range(3, 18):
         b.put(10, y, 10, 'spruce_log[axis=y]')
-    top_y = 3 + height - 1  # y=17
-    # Conical taper with tier notches (widest r=3 at lower boughs, single leader tip at y=16..17)
-    radii = [0, 0, 1, 1, 2, 1, 2, 2, 3, 2, 3, 3, 2]
-    for j, r in enumerate(radii):
-        yy = top_y - j
-        lim = r * r + r * 0.65
+    # (y, radius, wide whorl with branch tips)
+    rows = [(6, 4, True), (7, 3, False), (8, 1, False), (9, 3, True), (10, 2, False), (11, 1, False),
+            (12, 3, False), (13, 2, False), (14, 1, False), (15, 2, True), (16, 1, False),
+            (17, 1, False), (18, 0, False), (19, 0, False)]
+    for y, r, wide in rows:
+        lim = r * r + r * 0.5
         for dx in range(-r, r + 1):
             for dz in range(-r, r + 1):
                 d2 = dx * dx + dz * dz
-                if d2 > lim:
+                if d2 > lim or (dx == 0 and dz == 0 and y <= 17):
                     continue
-                if r >= 2 and d2 > (r - 1) ** 2 + (r - 1) * 0.65 and rng.random() < 0.18:
+                if r >= 2 and d2 > (r - 1) ** 2 + (r - 1) * 0.5 and rng.random() < 0.15:
                     continue
-                if dx == 0 and dz == 0 and yy < 3 + height - 2:
-                    continue
-                b.put(10 + dx, yy, 10 + dz, 'spruce_leaves[persistent=true]')
+                b.put(10 + dx, y, 10 + dz, 'spruce_leaves[persistent=true]')
+        if wide:
+            for dx, dz in ((r + 1, 0), (-r - 1, 0), (0, r + 1), (0, -r - 1)):
+                b.put(10 + dx, y, 10 + dz, 'spruce_leaves[persistent=true]')
+    b._prune_disconnected_leaves((10, 3, 10))
     return b.result()
 
 
 def _specimen_broadleaf() -> dict[str, Any]:
     b = VoxelBuilder('tree')
-    # Organic spreading oak rooted at (10,3,10); oak_log + oak_leaves[persistent=true] only above y=2.
-    rng = random.Random('specimen-broadleaf-praya-v1')
-    for y in range(3, 9):
+    # Spreading oak rooted at (10,3,10): five blocks of clear trunk, four limbs forking out and up,
+    # and a crown of overlapping rounded lobes, one over each limb end and one over the leader.
+    rng = random.Random('specimen-broadleaf-v2')
+    for y in range(3, 12):
         b.put(10, y, 10, 'oak_log[axis=y]')
-    # Orthogonal-stepped asymmetric boughs rising to distinct crown domes (100% 6-neighbor connected!)
     limbs = [
-        [(11, 6, 10, 'x'), (12, 6, 10, 'x'), (12, 7, 10, 'y'), (13, 7, 10, 'x'), (13, 8, 10, 'y')],
-        [(9, 6, 10, 'x'), (8, 6, 10, 'x'), (8, 7, 10, 'y'), (7, 7, 10, 'x'), (7, 8, 10, 'y')],
-        [(10, 6, 11, 'z'), (10, 6, 12, 'z'), (10, 7, 12, 'y'), (10, 7, 13, 'z'), (10, 8, 13, 'y')],
-        [(10, 7, 9, 'z'), (10, 7, 8, 'z'), (10, 8, 8, 'y')],
-    ]
-    domes = [
-        (10, 10, 10, 2),
-        (13, 9, 10, 2),
-        (7, 9, 10, 2),
-        (10, 9, 13, 2),
-        (10, 9, 8, 2),
+        [(11, 7, 10, 'x'), (11, 8, 10, 'y'), (12, 8, 10, 'x'), (12, 9, 10, 'y'), (13, 9, 10, 'x'), (13, 10, 10, 'y')],
+        [(9, 7, 10, 'x'), (9, 8, 10, 'y'), (8, 8, 10, 'x'), (8, 9, 10, 'y'), (8, 9, 11, 'z'), (7, 9, 11, 'x'), (7, 10, 11, 'y')],
+        [(10, 8, 11, 'z'), (10, 9, 11, 'y'), (10, 9, 12, 'z'), (11, 9, 12, 'x'), (11, 10, 12, 'y'), (11, 10, 13, 'z')],
+        [(10, 8, 9, 'z'), (10, 9, 9, 'y'), (10, 9, 8, 'z'), (9, 9, 8, 'x'), (9, 10, 8, 'y'), (9, 10, 7, 'z')],
     ]
     for chain in limbs:
         for lx, ly, lz, ax in chain:
             b.put(lx, ly, lz, f'oak_log[axis={ax}]')
-    for px, py, pz, r in domes:
-        for dy, lr in ((-1, 2), (0, r + 1), (1, r), (2, max(1, r - 1))):
-            lim = lr * lr + lr * 0.55
-            for dx in range(-lr, lr + 1):
-                for dz in range(-lr, lr + 1):
-                    d2 = dx * dx + dz * dz
-                    if d2 > lim:
+    lobes = [((10, 12, 10), (3.2, 2.2, 3.2)), ((13, 11, 10), (2.6, 2.0, 2.6)), ((7, 11, 11), (2.6, 2.0, 2.6)),
+             ((11, 11, 13), (2.6, 2.0, 2.4)), ((9, 11, 7), (2.6, 2.0, 2.6))]
+    for (cx, cy, cz), (rx, ry, rz) in lobes:
+        for dx in range(-3, 4):
+            for dy in range(-2, 3):
+                for dz in range(-3, 4):
+                    q = (dx / rx) ** 2 + (dy / ry) ** 2 + (dz / rz) ** 2
+                    if q > 1.0 or (q > 0.7 and rng.random() < 0.22):
                         continue
-                    if lr >= 2 and d2 > (lr - 1) ** 2 + 0.45 and rng.random() < 0.2:
-                        continue
-                    tx, ty, tz = px + dx, py + dy, pz + dz
-                    if b.get_state(tx, ty, tz).startswith('oak_log'):
+                    tx, ty, tz = cx + dx, cy + dy, cz + dz
+                    if ty < 8 or b.get_state(tx, ty, tz).startswith('oak_log'):
                         continue
                     b.put(tx, ty, tz, 'oak_leaves[persistent=true]')
     b._prune_disconnected_leaves((10, 3, 10))
